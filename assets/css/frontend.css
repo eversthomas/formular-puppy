@@ -1,0 +1,212 @@
+/**
+ * Frontend Stylesheet - Custom Puppy Application Form
+ * Perfect visual integration for golden-retriever-vom-niederberg.de.
+ * Binds warmth colors, typography inheritance, and clean transparency.
+ */
+
+.puppy-application-form-container {
+    max-width: 680px;
+    margin: 30px auto;
+    padding: 40px;
+    /* Exakter transparent-weißer Overlay-Look der Website */
+    background-color: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    border-radius: 4px; /* Flachere Ecken passend zum Design-Stil */
+    box-shadow: none; /* Die Webseite nutzt keine harten Schatten für Container */
+    font-family: inherit;
+    color: #333333; /* Weicheres Dunkelgrau für den Text */
+    box-sizing: border-box;
+}
+
+.puppy-application-form-container * {
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+/* Fieldset und Sektions-Struktur */
+.puppy-fieldset {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 30px;
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+.puppy-legend {
+    font-size: 18px;
+    font-weight: 700;
+    /* Dunkelbrauner Ton passend zur Hauptüberschrift "Golden Retriever" */
+    color: #1a1a1a; 
+    padding: 0 10px;
+    margin-bottom: 15px;
+}
+
+.puppy-application-form-container h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.puppy-form-group {
+    margin-bottom: 24px;
+}
+
+.puppy-label {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    color: #333333;
+    margin-bottom: 8px;
+}
+
+.puppy-label .required {
+    color: #d93939;
+    margin-left: 3px;
+}
+
+/* Formularfelder - Harmonisch integriert */
+.puppy-input-text,
+.puppy-input-email,
+.puppy-input-tel,
+.puppy-select,
+.puppy-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 15px;
+    line-height: 1.5;
+    color: #333333;
+    /* Leicht transparenter Hintergrund für die Felder im Ruhezustand */
+    background-color: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Fokus zieht auf Vollweiß an - Akzentfarbe angepasst auf den warmen Gold-/Braun-Ton */
+.puppy-input-text:focus,
+.puppy-input-email:focus,
+.puppy-input-tel:focus,
+.puppy-select:focus,
+.puppy-textarea:focus {
+    background-color: #ffffff;
+    border-color: #d99b26; /* Warmes Gold/Orange aus "Sommer 2026" */
+    box-shadow: 0 0 0 3px rgba(217, 155, 38, 0.2);
+    outline: none;
+}
+
+.puppy-textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.puppy-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+.puppy-form-checkbox-group {
+    display: block;
+    margin-bottom: 12px;
+}
+
+.puppy-label-checkbox {
+    display: flex;
+    align-items: flex-start;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #333333;
+    user-select: none;
+}
+
+.puppy-input-checkbox {
+    margin-top: 4px;
+    margin-right: 12px;
+    width: 18px;
+    height: 18px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+    accent-color: #d99b26; /* Einheitlicher warmer Ton */
+}
+
+/* Premium Absende-Button angepasst an den warmen, dunklen Natur-Look der Seite */
+.puppy-submit-btn {
+    display: inline-block;
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+    text-decoration: none;
+    color: #ffffff;
+    /* Dunkles Anthrazit/Braun für perfekten Kontrast und Integration */
+    background-color: #2c2520; 
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.puppy-submit-btn:hover {
+    background-color: #42372e;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.puppy-submit-btn:focus {
+    background-color: #42372e;
+    box-shadow: 0 0 0 3px rgba(217, 155, 38, 0.4);
+    outline: none;
+}
+
+.puppy-submit-btn:active {
+    transform: scale(0.99);
+}
+
+/* Nachrichten-Overlays */
+.puppy-form-message {
+    margin-bottom: 24px;
+    padding: 16px 20px;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 500;
+}
+
+.puppy-form-success {
+    background-color: rgba(234, 250, 241, 0.9);
+    color: #1a5c37;
+    border-left: 4px solid #2ecc71;
+}
+
+.puppy-form-error {
+    background-color: rgba(253, 242, 242, 0.9);
+    color: #8c2424;
+    border-left: 4px solid #e74c3c;
+}
+
+/* Mobile responsive Overrides */
+@media screen and (max-width: 768px) {
+    .puppy-application-form-container {
+        padding: 20px;
+        margin: 15px auto;
+    }
+    
+    .puppy-fieldset {
+        padding: 16px;
+    }
+}
