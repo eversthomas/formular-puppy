@@ -113,7 +113,7 @@ class Puppy_Form_Bootstrap {
 	 */
 	public static function activate_plugin() {
 		global $wpdb;
-		
+
 		$table_name      = $wpdb->prefix . 'puppy_applications';
 		$charset_collate = $wpdb->get_charset_collate();
 
@@ -139,6 +139,33 @@ class Puppy_Form_Bootstrap {
 			nutrition_agreement tinyint(1) NOT NULL DEFAULT 0,
 			privacy_agreement tinyint(1) NOT NULL DEFAULT 0,
 			created_at datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+			PRIMARY KEY  (id)
+		) $charset_collate;";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+
+		self::create_log_table();
+	}
+
+	/**
+	 * Creates (or upgrades, via dbDelta) the internal diagnostics log table.
+	 *
+	 * Used to record failures (e.g. failed DB inserts on form submission) that
+	 * would otherwise be invisible to site owners without server log access.
+	 */
+	public static function create_log_table() {
+		global $wpdb;
+
+		$log_table_name  = $wpdb->prefix . 'puppy_form_logs';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = "CREATE TABLE $log_table_name (
+			id mediumint(9) NOT NULL AUTO_INCREMENT,
+			created_at datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+			event_type varchar(50) NOT NULL,
+			message text NOT NULL,
+			ip_hash varchar(32) NOT NULL DEFAULT '',
 			PRIMARY KEY  (id)
 		) $charset_collate;";
 

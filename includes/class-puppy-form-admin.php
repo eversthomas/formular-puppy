@@ -48,6 +48,35 @@ class Puppy_Form_Admin {
 		add_action( 'admin_init', array( $this, 'handle_privacy_revocation' ) );
 		add_action( 'admin_init', array( $this, 'maybe_upgrade_database' ) );
 		add_action( 'admin_init', array( $this, 'handle_csv_export' ) );
+
+		// Runs on every request (frontend included), so the log table exists before a
+		// site visitor can submit the form - independent of when an admin next logs in.
+		add_action( 'init', array( $this, 'maybe_create_log_table_early' ) );
+	}
+
+	/**
+	 * Ensures the diagnostics log table exists as early as possible, on any request
+	 * (not just admin_init), so form submissions right after an update can always log.
+	 * Uses its own lightweight flag instead of puppy_form_db_version, so it never
+	 * interferes with - or skips ahead of - the ordered migration chain in
+	 * maybe_upgrade_database().
+	 */
+	public function maybe_create_log_table_early() {
+		if ( '1' === get_option( 'puppy_form_log_table_exists', '0' ) ) {
+			return;
+		}
+
+		require_once plugin_dir_path( __FILE__ ) . 'class-puppy-form-bootstrap.php';
+		Puppy_Form_Bootstrap::create_log_table();
+
+		// Only mark as "exists" if dbDelta actually succeeded - otherwise retry on the
+		// next request instead of silently staying blind to future log_event() calls.
+		global $wpdb;
+		$log_table_name = $wpdb->prefix . 'puppy_form_logs';
+		$table_found    = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $log_table_name ) );
+		if ( $table_found === $log_table_name ) {
+			update_option( 'puppy_form_log_table_exists', '1' );
+		}
 	}
 
 	/**
@@ -663,6 +692,56 @@ class Puppy_Form_Admin {
 			}
 			update_option( 'puppy_form_db_version', '1.2.0' );
 		}
+
+		// Dritte Migrationsstufe (1.3.0) - Anlegen der internen Diagnose-Log-Tabelle.
+		if ( version_compare( $db_version, '1.3.0', '<' ) ) {
+			require_once plugin_dir_path( __FILE__ ) . 'class-puppy-form-bootstrap.php';
+			Puppy_Form_Bootstrap::create_log_table();
+			update_option( 'puppy_form_db_version', '1.3.0' );
+		}
+	}
+
+	/**
+	 * Writes a diagnostic event to the internal log table.
+	 *
+	 * No applicant personal data is stored here by design (GDPR data
+	 * minimization) - only technical details needed for troubleshooting.
+	 *
+	 * @param string $event_type Short machine-readable event identifier.
+	 * @param string $message    Human-readable diagnostic message (e.g. DB error).
+	 */
+	public static function log_event( $event_type, $message ) {
+		global $wpdb;
+		$log_table_name = $wpdb->prefix . 'puppy_form_logs';
+
+		$client_ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+
+		$wpdb->insert(
+			$log_table_name,
+			array(
+				'created_at' => current_time( 'mysql' ),
+				'event_type' => sanitize_key( $event_type ),
+				'message'    => sanitize_text_field( $message ),
+				'ip_hash'    => $client_ip ? md5( $client_ip ) : '',
+			),
+			array( '%s', '%s', '%s', '%s' )
+		);
+	}
+
+	/**
+	 * Retrieves the most recent diagnostic log entries.
+	 *
+	 * @param int $limit Maximum number of entries to retrieve.
+	 * @return array
+	 */
+	public static function get_recent_log_entries( $limit = 50 ) {
+		global $wpdb;
+		$log_table_name = $wpdb->prefix . 'puppy_form_logs';
+
+		// Auto-prune entries older than 30 days to keep the table small (GDPR storage limitation).
+		$wpdb->query( $wpdb->prepare( "DELETE FROM $log_table_name WHERE created_at < %s", gmdate( 'Y-m-d H:i:s', strtotime( '-30 days' ) ) ) );
+
+		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $log_table_name ORDER BY created_at DESC LIMIT %d", $limit ) );
 	}
 
 	/**
@@ -1003,6 +1082,46 @@ class Puppy_Form_Admin {
 	}
 
 	/**
+	 * Render internal diagnostics log (e.g. failed DB inserts on form submission).
+	 */
+	private function render_diagnostics_tab() {
+		$entries = self::get_recent_log_entries( 50 );
+		?>
+		<div class="puppy-diagnostics-container">
+			<p>
+				<?php esc_html_e( 'Hier werden technische Fehler protokolliert, die beim Verarbeiten von Bewerbungen auftreten (z. B. wenn eine Bewerbung nicht gespeichert werden konnte). Einträge werden automatisch nach 30 Tagen gelöscht. Es werden keine Bewerberdaten in diesem Protokoll gespeichert.', 'custom-puppy-form' ); ?>
+			</p>
+			<table class="wp-list-table widefat fixed striped" style="margin-top: 15px;">
+				<thead>
+					<tr>
+						<th scope="col"><?php esc_html_e( 'Datum', 'custom-puppy-form' ); ?></th>
+						<th scope="col"><?php esc_html_e( 'Ereignis', 'custom-puppy-form' ); ?></th>
+						<th scope="col"><?php esc_html_e( 'Details', 'custom-puppy-form' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php if ( ! empty( $entries ) ) : ?>
+						<?php foreach ( $entries as $entry ) : ?>
+							<tr>
+								<td><?php echo esc_html( mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $entry->created_at ) ); ?></td>
+								<td><?php echo esc_html( $entry->event_type ); ?></td>
+								<td><?php echo esc_html( $entry->message ); ?></td>
+							</tr>
+						<?php endforeach; ?>
+					<?php else : ?>
+						<tr>
+							<td colspan="3" style="text-align: center; padding: 20px; color: #646970;">
+								<?php esc_html_e( 'Keine Einträge vorhanden.', 'custom-puppy-form' ); ?>
+							</td>
+						</tr>
+					<?php endif; ?>
+				</tbody>
+			</table>
+		</div>
+		<?php
+	}
+
+	/**
 	 * Render settings page.
 	 */
 	public function render_admin_page() {
@@ -1041,6 +1160,9 @@ class Puppy_Form_Admin {
 				<a href="?page=puppy-application-form&tab=shortcode_info" class="nav-tab <?php echo 'shortcode_info' === $active_tab ? 'nav-tab-active' : ''; ?>">
 					<?php esc_html_e( 'Shortcode & Anleitung', 'custom-puppy-form' ); ?>
 				</a>
+				<a href="?page=puppy-application-form&tab=diagnostics" class="nav-tab <?php echo 'diagnostics' === $active_tab ? 'nav-tab-active' : ''; ?>">
+					<?php esc_html_e( 'Diagnose', 'custom-puppy-form' ); ?>
+				</a>
 			</h2>
 
 			<?php
@@ -1048,6 +1170,8 @@ class Puppy_Form_Admin {
 				$this->render_applications_list();
 			} elseif ( 'shortcode_info' === $active_tab ) {
 				$this->render_shortcode_info_box();
+			} elseif ( 'diagnostics' === $active_tab ) {
+				$this->render_diagnostics_tab();
 			} else {
 				?>
 				<form action="options.php" method="post">

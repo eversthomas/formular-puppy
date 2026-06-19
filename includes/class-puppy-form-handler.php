@@ -231,9 +231,18 @@ class Puppy_Form_Handler {
 			)
 		);
 
+		// Capture the DB error immediately, before any other $wpdb query can overwrite it.
+		$db_insert_error = '';
+		if ( ! $db_insert_success ) {
+			$db_insert_error = $wpdb->last_error;
+			Puppy_Form_Admin::log_event(
+				'db_insert_failed',
+				$db_insert_error ? $db_insert_error : 'Unbekannter Fehler beim Speichern der Bewerbung (kein last_error verfügbar).'
+			);
+		}
+
 		// Fetch Settings options for Email compilation.
 		$breeder_email     = Puppy_Form_Admin::get_setting( 'receiver_email' );
-		error_log( 'PUPPY DEBUG receiver_email: ' . $breeder_email ); // TODO: remove before delivery
 		$puppy_price       = Puppy_Form_Admin::get_setting( 'puppy_price' );
 		$custom_email_body = Puppy_Form_Admin::get_setting( 'custom_email_body' );
 
@@ -253,6 +262,46 @@ class Puppy_Form_Handler {
 		$breeder_body .= '<body style="font-family: sans-serif; color: #333333; padding: 20px;">';
 		$breeder_body .= '<h2>' . esc_html__( 'Neue Welpen-Bewerbung eingegangen', 'custom-puppy-form' ) . '</h2>';
 		$breeder_body .= '<p>' . esc_html__( 'Es liegt eine neue Bewerbung für einen Welpen vor.', 'custom-puppy-form' ) . '</p>';
+		$breeder_body .= '<p>';
+		$breeder_body .= '<strong>' . esc_html__( 'Name:', 'custom-puppy-form' ) . '</strong> ' . esc_html( $applicant_name ) . '<br />';
+		$breeder_body .= '<strong>' . esc_html__( 'E-Mail:', 'custom-puppy-form' ) . '</strong> ' . esc_html( $applicant_email );
+		$breeder_body .= '</p>';
+
+		// Fallback safety net: if the application could not be saved to the database,
+		// embed the full submitted data directly in this email so no data is lost.
+		if ( ! $db_insert_success ) {
+			$fallback_purpose_labels = array();
+			if ( $purpose_family ) {
+				$fallback_purpose_labels[] = __( 'Familienhund', 'custom-puppy-form' );
+			}
+			if ( $purpose_sport ) {
+				$fallback_purpose_labels[] = __( 'Sport', 'custom-puppy-form' );
+			}
+			if ( $purpose_therapy ) {
+				$fallback_purpose_labels[] = __( 'Therapie', 'custom-puppy-form' );
+			}
+			$fallback_purposes = ! empty( $fallback_purpose_labels ) ? implode( ', ', $fallback_purpose_labels ) : __( 'Nicht angegeben', 'custom-puppy-form' );
+
+			$breeder_body .= '<div style="margin: 16px 0; padding: 14px; background-color: #fdf2f2; border-left: 4px solid #e74c3c;">';
+			$breeder_body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__( 'Achtung: Diese Bewerbung konnte NICHT im Backend gespeichert werden.', 'custom-puppy-form' ) . '</strong><br />';
+			$breeder_body .= esc_html__( 'Bitte sichern Sie die folgenden Angaben manuell und kontaktieren Sie den Bewerber bei Bedarf erneut.', 'custom-puppy-form' ) . '</p>';
+			$breeder_body .= '<p style="margin: 0;">';
+			$breeder_body .= '<strong>' . esc_html__( 'Alter:', 'custom-puppy-form' ) . '</strong> ' . esc_html( $applicant_age ) . '<br />';
+			$breeder_body .= '<strong>' . esc_html__( 'Telefon:', 'custom-puppy-form' ) . '</strong> ' . esc_html( $applicant_phone ) . '<br />';
+			$breeder_body .= '<strong>' . esc_html__( 'Anschrift:', 'custom-puppy-form' ) . '</strong> ' . esc_html( $applicant_address ) . '<br />';
+			$breeder_body .= '<strong>' . esc_html__( 'Wunschjahr:', 'custom-puppy-form' ) . '</strong> ' . esc_html( $target_year ) . '<br />';
+			$breeder_body .= '<strong>' . esc_html__( 'Gewünschte Eigenschaften:', 'custom-puppy-form' ) . '</strong> ' . esc_html( $traits ) . '<br />';
+			$breeder_body .= '<strong>' . esc_html__( 'Zweck:', 'custom-puppy-form' ) . '</strong> ' . esc_html( $fallback_purposes ) . '<br />';
+			$breeder_body .= '<strong>' . esc_html__( 'Familiensituation:', 'custom-puppy-form' ) . '</strong> ' . nl2br( esc_html( $family_situation ) ) . '<br />';
+			$breeder_body .= '<strong>' . esc_html__( 'Wohnsituation:', 'custom-puppy-form' ) . '</strong> ' . nl2br( esc_html( $living_situation ) ) . '<br />';
+			$breeder_body .= '<strong>' . esc_html__( 'Arbeitssituation:', 'custom-puppy-form' ) . '</strong> ' . nl2br( esc_html( $work_situation ) ) . '<br />';
+			$breeder_body .= '<strong>' . esc_html__( 'Hundeerfahrung:', 'custom-puppy-form' ) . '</strong> ' . nl2br( esc_html( $dog_experience ) ) . '<br />';
+			$breeder_body .= '<strong>' . esc_html__( 'Welpenauswahl:', 'custom-puppy-form' ) . '</strong> ' . esc_html( $selection_wish ) . '<br />';
+			$breeder_body .= '<strong>' . esc_html__( 'Tierische Mitbewohner:', 'custom-puppy-form' ) . '</strong> ' . esc_html( $other_pets );
+			$breeder_body .= '</p>';
+			$breeder_body .= '</div>';
+		}
+
 		$breeder_body .= '<p>' . esc_html__( 'Bitte logge dich in den Administrationsbereich ein, um alle Angaben einzusehen:', 'custom-puppy-form' ) . '</p>';
 		$breeder_body .= '<p>';
 		$breeder_body .= '  <a href="' . esc_url( $admin_url ) . '" style="display: inline-block; padding: 10px 20px; background-color: #2271b1; color: #ffffff; text-decoration: none; border-radius: 4px;">';
@@ -292,10 +341,29 @@ class Puppy_Form_Handler {
 
 		$mail_applicant_success = wp_mail( $applicant_email, $autoresponder_subject, $autoresponder_body, $headers );
 
-		// 8. Handle dispatch failure.
-		if ( ! $mail_breeder_success && ! $mail_applicant_success && ! $db_insert_success ) {
+		// 8. Differentiated result handling.
+		// The application data is considered "captured" if EITHER the DB insert succeeded
+		// OR the breeder email succeeded - because the breeder email carries the full
+		// fallback data whenever the DB insert failed (see body construction above).
+		// Only if BOTH of these fail is the data lost everywhere, regardless of whether
+		// the applicant's autoresponder happened to go out.
+		$data_captured = $db_insert_success || $mail_breeder_success;
+
+		if ( ! $data_captured ) {
+			Puppy_Form_Admin::log_event(
+				'total_submission_failure',
+				'DB-Insert UND die Benachrichtigungsmail an die Züchterin sind fehlgeschlagen. Bewerbung wurde nirgends erfasst.'
+			);
 			$this->redirect_with_query_arg( 'puppy_error', 'mail_failed' );
 			return;
+		}
+
+		if ( $db_insert_success && ! $mail_breeder_success ) {
+			Puppy_Form_Admin::log_event( 'mail_delivery_failed', 'Bewerbung wurde gespeichert, aber die Benachrichtigungsmail an die Züchterin ist fehlgeschlagen.' );
+		}
+
+		if ( ! $mail_applicant_success ) {
+			Puppy_Form_Admin::log_event( 'mail_delivery_failed', 'Bestätigungsmail an den Bewerber ist fehlgeschlagen.' );
 		}
 
 		// 9. Success redirect.
