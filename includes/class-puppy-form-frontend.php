@@ -44,6 +44,30 @@ class Puppy_Form_Frontend {
 	}
 
 	/**
+	 * Render a textarea with maxlength and live character counter.
+	 *
+	 * @param string $name Field name attribute.
+	 * @param string $id   Field id attribute.
+	 */
+	private function render_limited_textarea( $name, $id ) {
+		$max = defined( 'PUPPY_FORM_FREETEXT_MAX_LENGTH' ) ? (int) PUPPY_FORM_FREETEXT_MAX_LENGTH : 2000;
+		?>
+		<textarea
+			name="<?php echo esc_attr( $name ); ?>"
+			id="<?php echo esc_attr( $id ); ?>"
+			class="puppy-textarea puppy-limited-textarea"
+			maxlength="<?php echo (int) $max; ?>"
+			required
+			aria-required="true"
+		></textarea>
+		<p class="puppy-char-counter" id="<?php echo esc_attr( $id ); ?>-counter" aria-live="polite">
+			<span class="puppy-char-counter-value"><?php echo (int) $max; ?></span>
+			<?php esc_html_e( 'Zeichen übrig', 'custom-puppy-form' ); ?>
+		</p>
+		<?php
+	}
+
+	/**
 	 * Render frontend puppy form shortcode.
 	 *
 	 * @return string Form HTML.
@@ -148,7 +172,7 @@ class Puppy_Form_Frontend {
 					<label for="puppy_traits" class="puppy-label">
 						<?php esc_html_e( 'Welche Eigenschaften soll Dein Vierbeiner mitbringen?', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
 					</label>
-					<input type="text" name="puppy_traits" id="puppy_traits" class="puppy-input-text" required aria-required="true" />
+					<?php $this->render_limited_textarea( 'puppy_traits', 'puppy_traits' ); ?>
 				</div>
 
 				<div class="puppy-form-group">
@@ -226,28 +250,28 @@ class Puppy_Form_Frontend {
 					<label for="puppy_family_situation" class="puppy-label">
 						<?php esc_html_e( 'Familiensituation (Anzahl Personen im Haushalt, ggf. Kinder mit Altersangabe)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
 					</label>
-					<textarea name="puppy_family_situation" id="puppy_family_situation" class="puppy-textarea" required aria-required="true"></textarea>
+					<?php $this->render_limited_textarea( 'puppy_family_situation', 'puppy_family_situation' ); ?>
 				</div>
 
 				<div class="puppy-form-group">
 					<label for="puppy_living_situation" class="puppy-label">
 						<?php esc_html_e( 'Wohnsituation / Größe (Wohnung, Haus, Garten, Hof)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
 					</label>
-					<textarea name="puppy_living_situation" id="puppy_living_situation" class="puppy-textarea" required aria-required="true"></textarea>
+					<?php $this->render_limited_textarea( 'puppy_living_situation', 'puppy_living_situation' ); ?>
 				</div>
 
 				<div class="puppy-form-group">
 					<label for="puppy_work_situation" class="puppy-label">
 						<?php esc_html_e( 'Arbeitssituation (Berufstätigkeitsumfang, Std. pro Tag, ggf. Home-Office usw.)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
 					</label>
-					<textarea name="puppy_work_situation" id="puppy_work_situation" class="puppy-textarea" required aria-required="true"></textarea>
+					<?php $this->render_limited_textarea( 'puppy_work_situation', 'puppy_work_situation' ); ?>
 				</div>
 
 				<div class="puppy-form-group">
 					<label for="puppy_dog_experience" class="puppy-label">
 						<?php esc_html_e( 'Vorerfahrungen in der Hundehaltung (Wenn ja, welche Rasse?)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
 					</label>
-					<textarea name="puppy_dog_experience" id="puppy_dog_experience" class="puppy-textarea" required aria-required="true"></textarea>
+					<?php $this->render_limited_textarea( 'puppy_dog_experience', 'puppy_dog_experience' ); ?>
 				</div>
 
 				<div class="puppy-form-group">
@@ -297,6 +321,26 @@ class Puppy_Form_Frontend {
 				</button>
 			</div>
 		</form>
+		<script>
+		(function () {
+			var textareas = document.querySelectorAll('.puppy-application-form-container .puppy-limited-textarea');
+			textareas.forEach(function (textarea) {
+				var max = parseInt(textarea.getAttribute('maxlength'), 10) || 2000;
+				var counter = document.getElementById(textarea.id + '-counter');
+				var valueNode = counter ? counter.querySelector('.puppy-char-counter-value') : null;
+
+				function updateCounter() {
+					if (!valueNode) {
+						return;
+					}
+					valueNode.textContent = Math.max(0, max - textarea.value.length);
+				}
+
+				textarea.addEventListener('input', updateCounter);
+				updateCounter();
+			});
+		}());
+		</script>
 		<?php
 
 		return ob_get_clean();

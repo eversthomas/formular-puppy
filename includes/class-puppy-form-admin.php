@@ -698,6 +698,14 @@ class Puppy_Form_Admin {
 			require_once plugin_dir_path( __FILE__ ) . 'class-puppy-form-bootstrap.php';
 			Puppy_Form_Bootstrap::create_log_table();
 			update_option( 'puppy_form_db_version', '1.3.0' );
+			$db_version = '1.3.0';
+		}
+
+		// Vierte Migrationsstufe (1.4.0) - varchar-Felder für lange Freitexte auf TEXT erweitern.
+		if ( version_compare( $db_version, '1.4.0', '<' ) ) {
+			require_once plugin_dir_path( __FILE__ ) . 'class-puppy-form-bootstrap.php';
+			Puppy_Form_Bootstrap::upgrade_applications_table();
+			update_option( 'puppy_form_db_version', '1.4.0' );
 		}
 	}
 

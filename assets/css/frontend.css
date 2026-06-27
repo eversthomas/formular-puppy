@@ -105,6 +105,14 @@
     min-height: 120px;
 }
 
+.puppy-char-counter {
+    margin: 4px 0 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #888888;
+    text-align: right;
+}
+
 .puppy-select {
     appearance: none;
     -webkit-appearance: none;

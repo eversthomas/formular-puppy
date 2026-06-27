@@ -18,6 +18,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Puppy_Form_Handler {
 
 	/**
+	 * Maximum length for multi-line free-text fields (characters).
+	 *
+	 * @var int
+	 */
+	const FREETEXT_MAX_LENGTH = 2000;
+
+	/**
 	 * Single instance storage.
 	 *
 	 * @var Puppy_Form_Handler|null
@@ -71,6 +78,65 @@ class Puppy_Form_Handler {
 		$destination = add_query_arg( array( $key => $value ), $referer );
 
 		$this->safe_redirect( $destination );
+	}
+
+	/**
+	 * Truncate a string to a maximum number of multibyte characters.
+	 *
+	 * @param string $value Raw value.
+	 * @param int    $max   Maximum character count.
+	 * @return string
+	 */
+	private function limit_multibyte_length( $value, $max ) {
+		if ( function_exists( 'mb_strlen' ) && function_exists( 'mb_substr' ) ) {
+			if ( mb_strlen( $value, 'UTF-8' ) > $max ) {
+				return mb_substr( $value, 0, $max, 'UTF-8' );
+			}
+			return $value;
+		}
+
+		if ( strlen( $value ) > $max ) {
+			return substr( $value, 0, $max );
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Normalize text for database storage: encode emoji safely and strip 4-byte UTF-8
+	 * sequences that break legacy utf8 (non-mb4) columns in strict SQL mode.
+	 *
+	 * @param string $value Sanitized text value.
+	 * @return string
+	 */
+	private function sanitize_db_text( $value ) {
+		// wp_encode_emoji() is intended for HTML output (converts to <img> tags) and is
+		// unsuitable for DB storage. Strip 4-byte UTF-8 instead to prevent strict-mode
+		// failures on legacy utf8 (non-mb4) database charsets.
+		return preg_replace( '/[\x{10000}-\x{10FFFF}]/u', '', $value );
+	}
+
+	/**
+	 * Prepare a multi-line free-text field for database insert.
+	 *
+	 * @param string $raw_value Raw POST value.
+	 * @return string
+	 */
+	private function prepare_freetext_for_db( $raw_value ) {
+		$value = sanitize_textarea_field( $raw_value );
+		$value = $this->limit_multibyte_length( $value, self::FREETEXT_MAX_LENGTH );
+		return $this->sanitize_db_text( $value );
+	}
+
+	/**
+	 * Prepare a single-line text field for database insert.
+	 *
+	 * @param string $raw_value Raw POST value.
+	 * @return string
+	 */
+	private function prepare_short_text_for_db( $raw_value ) {
+		$value = sanitize_text_field( $raw_value );
+		return $this->sanitize_db_text( $value );
 	}
 
 	/**
@@ -163,21 +229,21 @@ class Puppy_Form_Handler {
 
 		// 6. Full input sanitization (CHANGE 4 part B).
 		$target_year          = $posted_year;
-		$traits               = sanitize_text_field( $_POST['puppy_traits'] );
+		$traits               = $this->prepare_freetext_for_db( $_POST['puppy_traits'] );
 		$purpose_family       = isset( $_POST['puppy_purpose_family'] ) ? 1 : 0;
 		$purpose_sport        = isset( $_POST['puppy_purpose_sport'] ) ? 1 : 0;
 		$purpose_therapy      = isset( $_POST['puppy_purpose_therapy'] ) ? 1 : 0;
-		$applicant_name       = sanitize_text_field( $_POST['puppy_applicant_name'] );
-		$applicant_age        = sanitize_text_field( $_POST['puppy_applicant_age'] );
+		$applicant_name       = $this->prepare_short_text_for_db( $_POST['puppy_applicant_name'] );
+		$applicant_age        = $this->prepare_short_text_for_db( $_POST['puppy_applicant_age'] );
 		$applicant_email      = $email_input;
-		$applicant_phone      = sanitize_text_field( $_POST['puppy_applicant_phone'] );
-		$applicant_address    = sanitize_text_field( $_POST['puppy_applicant_address'] );
-		$family_situation     = sanitize_textarea_field( $_POST['puppy_family_situation'] );
-		$living_situation     = sanitize_textarea_field( $_POST['puppy_living_situation'] );
-		$work_situation       = sanitize_textarea_field( $_POST['puppy_work_situation'] );
-		$dog_experience       = sanitize_textarea_field( $_POST['puppy_dog_experience'] );
-		$selection_wish       = sanitize_text_field( $_POST['puppy_selection_wish'] );
-		$other_pets           = sanitize_text_field( $_POST['puppy_other_pets'] );
+		$applicant_phone      = $this->prepare_short_text_for_db( $_POST['puppy_applicant_phone'] );
+		$applicant_address    = $this->prepare_freetext_for_db( $_POST['puppy_applicant_address'] );
+		$family_situation     = $this->prepare_freetext_for_db( $_POST['puppy_family_situation'] );
+		$living_situation     = $this->prepare_freetext_for_db( $_POST['puppy_living_situation'] );
+		$work_situation       = $this->prepare_freetext_for_db( $_POST['puppy_work_situation'] );
+		$dog_experience       = $this->prepare_freetext_for_db( $_POST['puppy_dog_experience'] );
+		$selection_wish       = $this->prepare_freetext_for_db( $_POST['puppy_selection_wish'] );
+		$other_pets           = $this->prepare_freetext_for_db( $_POST['puppy_other_pets'] );
 		$nutrition_agreement  = 1;
 		$privacy_agreement    = 1;
 

@@ -10,6 +10,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
+if ( ! defined( 'PUPPY_FORM_FREETEXT_MAX_LENGTH' ) ) {
+	define( 'PUPPY_FORM_FREETEXT_MAX_LENGTH', 2000 );
+}
+
 /**
  * Class Puppy_Form_Bootstrap
  *
@@ -83,7 +87,7 @@ class Puppy_Form_Bootstrap {
 				'puppy-form-frontend-css',
 				$plugin_url . 'assets/css/frontend.css',
 				array(),
-				'1.0.0',
+				PUPPY_FORM_VERSION,
 				'all'
 			);
 		}
@@ -102,16 +106,16 @@ class Puppy_Form_Bootstrap {
 				'puppy-form-admin-css',
 				$plugin_url . 'assets/css/admin.css',
 				array(),
-				'1.0.0',
+				PUPPY_FORM_VERSION,
 				'all'
 			);
 		}
 	}
 
 	/**
-	 * Set up custom database table upon plugin activation.
+	 * Creates or upgrades the applications table via dbDelta.
 	 */
-	public static function activate_plugin() {
+	public static function upgrade_applications_table() {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'puppy_applications';
@@ -121,7 +125,7 @@ class Puppy_Form_Bootstrap {
 		$sql = "CREATE TABLE $table_name (
 			id mediumint(9) NOT NULL AUTO_INCREMENT,
 			target_year varchar(10) NOT NULL,
-			traits varchar(255) NOT NULL,
+			traits text NOT NULL,
 			purpose_family tinyint(1) NOT NULL DEFAULT 0,
 			purpose_sport tinyint(1) NOT NULL DEFAULT 0,
 			purpose_therapy tinyint(1) NOT NULL DEFAULT 0,
@@ -129,13 +133,13 @@ class Puppy_Form_Bootstrap {
 			applicant_age varchar(20) NOT NULL,
 			applicant_email varchar(255) NOT NULL,
 			applicant_phone varchar(100) NOT NULL,
-			applicant_address varchar(255) NOT NULL,
+			applicant_address text NOT NULL,
 			family_situation text NOT NULL,
 			living_situation text NOT NULL,
 			work_situation text NOT NULL,
 			dog_experience text NOT NULL,
-			selection_wish varchar(255) NOT NULL,
-			other_pets varchar(255) NOT NULL,
+			selection_wish text NOT NULL,
+			other_pets text NOT NULL,
 			nutrition_agreement tinyint(1) NOT NULL DEFAULT 0,
 			privacy_agreement tinyint(1) NOT NULL DEFAULT 0,
 			created_at datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
@@ -144,7 +148,13 @@ class Puppy_Form_Bootstrap {
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
+	}
 
+	/**
+	 * Set up custom database table upon plugin activation.
+	 */
+	public static function activate_plugin() {
+		self::upgrade_applications_table();
 		self::create_log_table();
 	}
 
