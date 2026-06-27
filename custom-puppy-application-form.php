@@ -3,7 +3,7 @@
  * Plugin Name: Custom Puppy Application Form
  * Plugin URI:  https://bezugssysteme.de/
  * Description: Renders a secure puppy application form via shortcode, handles automated HTML emails (breeder notification and autoresponder), and includes a secure settings page with tabbed navigation under its own admin menu. Fully modular, highly accessible, customizable, and saves submissions to a custom database applicant table.
- * Version:     1.2.0
+ * Version:     1.2.1
  * Author:      Bezugssysteme Digitalagentur
  * Author URI:  https://bezugssysteme.de/
  * License:     GPLv2 or later
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'PUPPY_FORM_VERSION' ) ) {
-	define( 'PUPPY_FORM_VERSION', '1.2.0' );
+	define( 'PUPPY_FORM_VERSION', '1.2.1' );
 }
 
 // Require Core Bootstrap file.

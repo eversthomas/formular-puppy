@@ -44,26 +44,73 @@ class Puppy_Form_Frontend {
 	}
 
 	/**
+	 * Maximum allowed length for free-text fields.
+	 *
+	 * @return int
+	 */
+	private function get_freetext_max_length() {
+		return defined( 'PUPPY_FORM_FREETEXT_MAX_LENGTH' ) ? (int) PUPPY_FORM_FREETEXT_MAX_LENGTH : 2000;
+	}
+
+	/**
+	 * Render the live character counter below a limited field.
+	 *
+	 * @param string $id Field id attribute.
+	 */
+	private function render_char_counter( $id ) {
+		$max = $this->get_freetext_max_length();
+		?>
+		<p class="puppy-char-counter" id="<?php echo esc_attr( $id ); ?>-counter" aria-live="polite">
+			<span class="puppy-char-counter-value"><?php echo (int) $max; ?></span>
+			<?php esc_html_e( 'Zeichen übrig', 'custom-puppy-form' ); ?>
+		</p>
+		<?php
+	}
+
+	/**
 	 * Render a textarea with maxlength and live character counter.
 	 *
 	 * @param string $name Field name attribute.
 	 * @param string $id   Field id attribute.
 	 */
 	private function render_limited_textarea( $name, $id ) {
-		$max = defined( 'PUPPY_FORM_FREETEXT_MAX_LENGTH' ) ? (int) PUPPY_FORM_FREETEXT_MAX_LENGTH : 2000;
+		$max = $this->get_freetext_max_length();
 		?>
 		<textarea
 			name="<?php echo esc_attr( $name ); ?>"
 			id="<?php echo esc_attr( $id ); ?>"
-			class="puppy-textarea puppy-limited-textarea"
+			class="puppy-textarea puppy-limited-field"
 			maxlength="<?php echo (int) $max; ?>"
+			data-char-max="<?php echo (int) $max; ?>"
 			required
 			aria-required="true"
 		></textarea>
-		<p class="puppy-char-counter" id="<?php echo esc_attr( $id ); ?>-counter" aria-live="polite">
-			<span class="puppy-char-counter-value"><?php echo (int) $max; ?></span>
-			<?php esc_html_e( 'Zeichen übrig', 'custom-puppy-form' ); ?>
-		</p>
+		<?php $this->render_char_counter( $id ); ?>
+		<?php
+	}
+
+	/**
+	 * Render a single-line input with maxlength and live character counter.
+	 *
+	 * @param string $name  Field name attribute.
+	 * @param string $id    Field id attribute.
+	 * @param string $class CSS class for the input element.
+	 * @param string $type  Input type attribute.
+	 */
+	private function render_limited_input( $name, $id, $class = 'puppy-input-text', $type = 'text' ) {
+		$max = $this->get_freetext_max_length();
+		?>
+		<input
+			type="<?php echo esc_attr( $type ); ?>"
+			name="<?php echo esc_attr( $name ); ?>"
+			id="<?php echo esc_attr( $id ); ?>"
+			class="<?php echo esc_attr( $class ); ?> puppy-limited-field"
+			maxlength="<?php echo (int) $max; ?>"
+			data-char-max="<?php echo (int) $max; ?>"
+			required
+			aria-required="true"
+		/>
+		<?php $this->render_char_counter( $id ); ?>
 		<?php
 	}
 
@@ -243,7 +290,7 @@ class Puppy_Form_Frontend {
 					<label for="puppy_applicant_address" class="puppy-label">
 						<?php esc_html_e( 'Anschrift (Straße, PLZ, Ort)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
 					</label>
-					<input type="text" name="puppy_applicant_address" id="puppy_applicant_address" class="puppy-input-text" required aria-required="true" />
+					<?php $this->render_limited_input( 'puppy_applicant_address', 'puppy_applicant_address' ); ?>
 				</div>
 
 				<div class="puppy-form-group">
@@ -278,14 +325,14 @@ class Puppy_Form_Frontend {
 					<label for="puppy_selection_wish" class="puppy-label">
 						<?php esc_html_e( 'Welpenauswahl (Geschlechterwunsch / Farbwunsch / Egal)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
 					</label>
-					<input type="text" name="puppy_selection_wish" id="puppy_selection_wish" class="puppy-input-text" required aria-required="true" />
+					<?php $this->render_limited_textarea( 'puppy_selection_wish', 'puppy_selection_wish' ); ?>
 				</div>
 
 				<div class="puppy-form-group">
 					<label for="puppy_other_pets" class="puppy-label">
 						<?php esc_html_e( 'Tierische Mitbewohner (Habt ihr bereits Tiere, mit denen der Welpe aufwachsen wird?)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
 					</label>
-					<input type="text" name="puppy_other_pets" id="puppy_other_pets" class="puppy-input-text" required aria-required="true" />
+					<?php $this->render_limited_textarea( 'puppy_other_pets', 'puppy_other_pets' ); ?>
 				</div>
 			</fieldset>
 
@@ -323,21 +370,35 @@ class Puppy_Form_Frontend {
 		</form>
 		<script>
 		(function () {
-			var textareas = document.querySelectorAll('.puppy-application-form-container .puppy-limited-textarea');
-			textareas.forEach(function (textarea) {
-				var max = parseInt(textarea.getAttribute('maxlength'), 10) || 2000;
-				var counter = document.getElementById(textarea.id + '-counter');
+			var fields = document.querySelectorAll('.puppy-application-form-container .puppy-limited-field');
+			fields.forEach(function (field) {
+				var max = parseInt(field.getAttribute('data-char-max'), 10) || parseInt(field.getAttribute('maxlength'), 10) || 2000;
+				var counter = document.getElementById(field.id + '-counter');
 				var valueNode = counter ? counter.querySelector('.puppy-char-counter-value') : null;
+
+				function enforceLimit() {
+					if (field.value.length > max) {
+						field.value = field.value.slice(0, max);
+					}
+				}
 
 				function updateCounter() {
 					if (!valueNode) {
 						return;
 					}
-					valueNode.textContent = Math.max(0, max - textarea.value.length);
+					valueNode.textContent = Math.max(0, max - field.value.length);
 				}
 
-				textarea.addEventListener('input', updateCounter);
-				updateCounter();
+				function syncField() {
+					enforceLimit();
+					updateCounter();
+				}
+
+				field.addEventListener('input', syncField);
+				field.addEventListener('paste', function () {
+					window.setTimeout(syncField, 0);
+				});
+				syncField();
 			});
 		}());
 		</script>

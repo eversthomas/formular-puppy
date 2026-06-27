@@ -46,7 +46,8 @@ class Puppy_Form_Admin {
 		add_action( 'admin_init', array( $this, 'handle_privacy_activation' ) );
 		add_action( 'admin_notices', array( $this, 'render_privacy_admin_notice' ) );
 		add_action( 'admin_init', array( $this, 'handle_privacy_revocation' ) );
-		add_action( 'admin_init', array( $this, 'maybe_upgrade_database' ) );
+		// Runs on every request so schema upgrades apply before frontend form submissions.
+		add_action( 'init', array( $this, 'maybe_upgrade_database' ), 5 );
 		add_action( 'admin_init', array( $this, 'handle_csv_export' ) );
 
 		// Runs on every request (frontend included), so the log table exists before a
@@ -704,8 +705,35 @@ class Puppy_Form_Admin {
 		// Vierte Migrationsstufe (1.4.0) - varchar-Felder für lange Freitexte auf TEXT erweitern.
 		if ( version_compare( $db_version, '1.4.0', '<' ) ) {
 			require_once plugin_dir_path( __FILE__ ) . 'class-puppy-form-bootstrap.php';
+
+			// dbDelta alone often fails to change column types; explicit ALTER is required.
+			$text_columns = array( 'traits', 'applicant_address', 'selection_wish', 'other_pets' );
+			foreach ( $text_columns as $column ) {
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- column names are hardcoded.
+				$wpdb->query( "ALTER TABLE $table_name MODIFY COLUMN `$column` TEXT NOT NULL" );
+			}
+
 			Puppy_Form_Bootstrap::upgrade_applications_table();
 			update_option( 'puppy_form_db_version', '1.4.0' );
+			$db_version = '1.4.0';
+		}
+
+		// Fünfte Migrationsstufe (1.4.1) - Reparatur, falls 1.4.0 dbDelta die Spaltentypen nicht geändert hat.
+		if ( version_compare( $db_version, '1.4.1', '<' ) ) {
+			require_once plugin_dir_path( __FILE__ ) . 'class-puppy-form-bootstrap.php';
+
+			$text_columns = array( 'traits', 'applicant_address', 'selection_wish', 'other_pets' );
+			foreach ( $text_columns as $column ) {
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- column names are hardcoded.
+				$column_info = $wpdb->get_row( "SHOW COLUMNS FROM $table_name LIKE '$column'" );
+				if ( $column_info && false !== stripos( $column_info->Type, 'varchar' ) ) {
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- column names are hardcoded.
+					$wpdb->query( "ALTER TABLE $table_name MODIFY COLUMN `$column` TEXT NOT NULL" );
+				}
+			}
+
+			Puppy_Form_Bootstrap::upgrade_applications_table();
+			update_option( 'puppy_form_db_version', '1.4.1' );
 		}
 	}
 
