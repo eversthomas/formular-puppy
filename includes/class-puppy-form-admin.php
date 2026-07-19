@@ -827,7 +827,7 @@ class Puppy_Form_Admin {
 				'Futter-Zustimmung',
 				'Datenschutz-Zustimmung',
 				'Eingegangen am',
-			) );
+			), ',', '"', '\\' );
 
 			if ( ! empty( $applications ) ) {
 				foreach ( $applications as $app ) {
@@ -877,7 +877,7 @@ class Puppy_Form_Admin {
 						! empty( $app->nutrition_agreement ) ? 'Ja' : 'Nein',
 						! empty( $app->privacy_agreement ) ? 'Ja' : 'Nein',
 						$app->created_at,
-					) );
+					), ',', '"', '\\' );
 				}
 			}
 

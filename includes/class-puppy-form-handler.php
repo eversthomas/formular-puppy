@@ -321,10 +321,6 @@ class Puppy_Form_Handler {
 			)
 		);
 
-		if ( false === $db_insert_success ) {
-			error_log( 'PUPPY ERROR: DB insert failed. wpdb error: ' . $wpdb->last_error ); // TODO: remove before delivery
-		}
-
 		// Capture the DB error immediately, before any other $wpdb query can overwrite it.
 		$db_insert_error = '';
 		if ( ! $db_insert_success ) {
@@ -343,13 +339,11 @@ class Puppy_Form_Handler {
 		$breeder_recipient = is_email( $breeder_email ) ? $breeder_email : get_option( 'admin_email' );
 
 		// Dynamically determine the domain-matching sender email for SPF/DMARC compatibility.
-		$domain = wp_parse_url( home_url(), PHP_URL_HOST );
-		if ( ! empty( $domain ) ) {
-			$domain = preg_replace( '/^www\./i', '', $domain );
-		} else {
-			$domain = 'golden-retriever-vom-niederberg.de'; // Safe fallback
+		$site_domain = wp_parse_url( home_url(), PHP_URL_HOST );
+		if ( ! empty( $site_domain ) ) {
+			$site_domain = preg_replace( '/^www\./i', '', $site_domain );
 		}
-		$sender_email = 'no-reply@' . $domain;
+		$sender_email = 'no-reply@' . $site_domain;
 
 		// Set headers to HTML format.
 		$headers = array(
@@ -450,17 +444,16 @@ class Puppy_Form_Handler {
 		$mail_applicant_success = wp_mail( $applicant_email, $autoresponder_subject, $autoresponder_body, $headers );
 
 		// 8. Differentiated result handling.
-		// The application data is considered "captured" if EITHER the DB insert succeeded
-		// OR the breeder email succeeded - because the breeder email carries the full
-		// fallback data whenever the DB insert failed (see body construction above).
-		// Only if BOTH of these fail is the data lost everywhere, regardless of whether
-		// the applicant's autoresponder happened to go out.
+		// Bewerbung gilt nur als erfasst, wenn der DB-Insert erfolgreich war.
+		// Die Züchter-Benachrichtigungsmail ist sekundär — selbst wenn sie
+		// ankam, ist ohne DB-Eintrag keine Verwaltung der Bewerbung möglich.
 		$data_captured = (bool) $db_insert_success;
 
 		if ( ! $data_captured ) {
 			Puppy_Form_Admin::log_event(
 				'total_submission_failure',
-				'DB-Insert UND die Benachrichtigungsmail an die Züchterin sind fehlgeschlagen. Bewerbung wurde nirgends erfasst.'
+				'DB-Insert fehlgeschlagen. Bewerbung wurde nicht in der Datenbank gespeichert. Züchter-Mail-Status: ' .
+				( $mail_breeder_success ? 'erfolgreich gesendet' : 'ebenfalls fehlgeschlagen' )
 			);
 			$this->redirect_with_query_arg( 'puppy_error', 'mail_failed' );
 			return;

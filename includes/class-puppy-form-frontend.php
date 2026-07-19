@@ -41,6 +41,23 @@ class Puppy_Form_Frontend {
 	 */
 	private function __construct() {
 		add_shortcode( 'puppy_application_form', array( $this, 'render_shortcode' ) );
+		add_action( 'send_headers', array( $this, 'set_nocache_headers' ) );
+	}
+
+	/**
+	 * Sendet Cache-Control-Header für Seiten mit dem Formular-Shortcode.
+	 * Verhindert, dass abgelaufene Nonces aus dem Cache ausgeliefert werden.
+	 */
+	public function set_nocache_headers() {
+		if ( ! is_singular() ) {
+			return;
+		}
+		$post = get_post();
+		// Hinweis: greift nur bei Shortcode direkt im Post-Inhalt.
+		// Widget- oder Template-Part-Einbindung würde dies nicht erkennen.
+		if ( $post && has_shortcode( $post->post_content, 'puppy_application_form' ) ) {
+			nocache_headers();
+		}
 	}
 
 	/**
@@ -120,12 +137,6 @@ class Puppy_Form_Frontend {
 	 * @return string Form HTML.
 	 */
 	public function render_shortcode() {
-		if ( ! is_admin() ) {
-			header( 'Cache-Control: no-cache, no-store, must-revalidate' );
-			header( 'Pragma: no-cache' );
-			header( 'Expires: 0' );
-		}
-
 		// 1. Check active GDPR Privacy activation lock.
 		$privacy_activated = Puppy_Form_Admin::get_setting( 'privacy_activated' );
 		if ( '1' !== $privacy_activated ) {
