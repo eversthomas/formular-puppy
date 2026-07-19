@@ -120,6 +120,12 @@ class Puppy_Form_Frontend {
 	 * @return string Form HTML.
 	 */
 	public function render_shortcode() {
+		if ( ! is_admin() ) {
+			header( 'Cache-Control: no-cache, no-store, must-revalidate' );
+			header( 'Pragma: no-cache' );
+			header( 'Expires: 0' );
+		}
+
 		// 1. Check active GDPR Privacy activation lock.
 		$privacy_activated = Puppy_Form_Admin::get_setting( 'privacy_activated' );
 		if ( '1' !== $privacy_activated ) {
@@ -187,9 +193,9 @@ class Puppy_Form_Frontend {
 			<input type="hidden" name="puppy_page_url" value="<?php echo esc_url( $current_url ); ?>" />
 
 			<!-- Spambot Honeypot (Fully hidden from screen readers & keyboard inputs) -->
-			<div class="puppy-hp-wrapper" style="display:none !important;" tabindex="-1" aria-hidden="true">
-				<label for="puppy_website_hp"><?php esc_html_e( 'Bitte dieses Feld freilassen:', 'custom-puppy-form' ); ?></label>
-				<input type="text" name="puppy_website_hp" id="puppy_website_hp" autocomplete="off" tabindex="-1" value="" />
+			<div class="puppy-hp-wrapper" style="position:absolute;left:-9999px;top:-9999px;width:0;height:0;overflow:hidden;opacity:0;" tabindex="-1" aria-hidden="true">
+				<label for="puppy_field_b4t"><?php esc_html_e( 'Bitte dieses Feld freilassen:', 'custom-puppy-form' ); ?></label>
+				<input type="text" name="puppy_field_b4t" id="puppy_field_b4t" autocomplete="off" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;top:-9999px;width:0;height:0;overflow:hidden;opacity:0;" value="" />
 			</div>
 
 			<!-- Bereich A: Interessenbekundung -->

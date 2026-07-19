@@ -129,13 +129,17 @@ class Puppy_Form_Handler {
 	}
 
 	/**
-	 * Prepare a single-line text field for database insert.
+	 * Prepare a single-line text field for database insert with optional maximum length.
 	 *
-	 * @param string $raw_value Raw POST value.
+	 * @param string   $raw_value Raw POST value.
+	 * @param int|null $max       Optional maximum character count.
 	 * @return string
 	 */
-	private function prepare_short_text_for_db( $raw_value ) {
+	private function prepare_short_text_for_db( $raw_value, $max = null ) {
 		$value = sanitize_text_field( $raw_value );
+		if ( null !== $max ) {
+			$value = $this->limit_multibyte_length( $value, $max );
+		}
 		return $this->sanitize_db_text( $value );
 	}
 
@@ -163,7 +167,7 @@ class Puppy_Form_Handler {
 		}
 
 		// 3. Honeypot check (Spambot detection). If filled, fail silently.
-		if ( ! empty( $_POST['puppy_website_hp'] ) ) {
+		if ( ! empty( $_POST['puppy_field_b4t'] ) ) {
 			$referer = ! empty( $_POST['puppy_page_url'] ) ? esc_url_raw( $_POST['puppy_page_url'] ) : wp_get_referer();
 			if ( ! $referer ) {
 				$referer = home_url( '/' );
@@ -174,9 +178,29 @@ class Puppy_Form_Handler {
 		}
 
 		// 3b. IP-basierte Ratenbegrenzung (CHANGE 5)
-		$client_ip     = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( $_SERVER['REMOTE_ADDR'] ) : '';
-		$ip_hash       = md5( $client_ip );
-		$transient_key = 'puppy_rl_' . $ip_hash;
+		/**
+		 * Ermittelt die echte Client-IP, auch hinter Reverse-Proxies.
+		 * Gibt einen MD5-Hash zurück (datenschutzkonform).
+		 */
+		$real_ip = '';
+		$proxy_headers = array(
+			'HTTP_X_FORWARDED_FOR',
+			'HTTP_X_REAL_IP',
+			'HTTP_CLIENT_IP',
+			'HTTP_CF_CONNECTING_IP', // Cloudflare
+		);
+		foreach ( $proxy_headers as $header ) {
+			if ( ! empty( $_SERVER[ $header ] ) ) {
+				// X-Forwarded-For can contain a chain; take the first IP.
+				$real_ip = trim( explode( ',', $_SERVER[ $header ] )[0] );
+				break;
+			}
+		}
+		if ( empty( $real_ip ) ) {
+			$real_ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+		}
+		$real_ip       = sanitize_text_field( $real_ip );
+		$transient_key = 'puppy_rl_' . md5( $real_ip );
 
 		$count = (int) get_transient( $transient_key );
 		if ( $count >= 3 ) {
@@ -233,10 +257,10 @@ class Puppy_Form_Handler {
 		$purpose_family       = isset( $_POST['puppy_purpose_family'] ) ? 1 : 0;
 		$purpose_sport        = isset( $_POST['puppy_purpose_sport'] ) ? 1 : 0;
 		$purpose_therapy      = isset( $_POST['puppy_purpose_therapy'] ) ? 1 : 0;
-		$applicant_name       = $this->prepare_short_text_for_db( $_POST['puppy_applicant_name'] );
-		$applicant_age        = $this->prepare_short_text_for_db( $_POST['puppy_applicant_age'] );
-		$applicant_email      = $email_input;
-		$applicant_phone      = $this->prepare_short_text_for_db( $_POST['puppy_applicant_phone'] );
+		$applicant_name       = $this->prepare_short_text_for_db( $_POST['puppy_applicant_name'], 255 );
+		$applicant_age        = $this->prepare_short_text_for_db( $_POST['puppy_applicant_age'], 20 );
+		$applicant_email      = $this->limit_multibyte_length( $email_input, 255 );
+		$applicant_phone      = $this->prepare_short_text_for_db( $_POST['puppy_applicant_phone'], 100 );
 		$applicant_address    = $this->prepare_freetext_for_db( $_POST['puppy_applicant_address'] );
 		$family_situation     = $this->prepare_freetext_for_db( $_POST['puppy_family_situation'] );
 		$living_situation     = $this->prepare_freetext_for_db( $_POST['puppy_living_situation'] );
@@ -297,6 +321,10 @@ class Puppy_Form_Handler {
 			)
 		);
 
+		if ( false === $db_insert_success ) {
+			error_log( 'PUPPY ERROR: DB insert failed. wpdb error: ' . $wpdb->last_error ); // TODO: remove before delivery
+		}
+
 		// Capture the DB error immediately, before any other $wpdb query can overwrite it.
 		$db_insert_error = '';
 		if ( ! $db_insert_success ) {
@@ -312,8 +340,23 @@ class Puppy_Form_Handler {
 		$puppy_price       = Puppy_Form_Admin::get_setting( 'puppy_price' );
 		$custom_email_body = Puppy_Form_Admin::get_setting( 'custom_email_body' );
 
+		$breeder_recipient = is_email( $breeder_email ) ? $breeder_email : get_option( 'admin_email' );
+
+		// Dynamically determine the domain-matching sender email for SPF/DMARC compatibility.
+		$domain = wp_parse_url( home_url(), PHP_URL_HOST );
+		if ( ! empty( $domain ) ) {
+			$domain = preg_replace( '/^www\./i', '', $domain );
+		} else {
+			$domain = 'golden-retriever-vom-niederberg.de'; // Safe fallback
+		}
+		$sender_email = 'no-reply@' . $domain;
+
 		// Set headers to HTML format.
-		$headers = array( 'Content-Type: text/html; charset=UTF-8' );
+		$headers = array(
+			'Content-Type: text/html; charset=UTF-8',
+			'From: Welpen-Bewerbung <' . $sender_email . '>',
+			'Reply-To: ' . $breeder_recipient,
+		);
 
 		// --- Action A: Send notification email to the breeder ---
 		$breeder_subject = sprintf(
@@ -381,7 +424,6 @@ class Puppy_Form_Handler {
 		$breeder_body .= '</html>';
 
 		// Verify receiver email integrity prior to sending.
-		$breeder_recipient = is_email( $breeder_email ) ? $breeder_email : get_option( 'admin_email' );
 		$mail_breeder_success = wp_mail( $breeder_recipient, $breeder_subject, $breeder_body, $headers );
 
 		// --- Action B: Send autoresponder to applicant ---
@@ -413,7 +455,7 @@ class Puppy_Form_Handler {
 		// fallback data whenever the DB insert failed (see body construction above).
 		// Only if BOTH of these fail is the data lost everywhere, regardless of whether
 		// the applicant's autoresponder happened to go out.
-		$data_captured = $db_insert_success || $mail_breeder_success;
+		$data_captured = (bool) $db_insert_success;
 
 		if ( ! $data_captured ) {
 			Puppy_Form_Admin::log_event(
