@@ -393,11 +393,11 @@ class Puppy_Form_Frontend {
 						);
 						?> *
 					</label>
-					<input type="number"
+					<input type="text"
+						inputmode="numeric"
+						pattern="[0-9]*"
 						id="puppy_math_answer"
 						name="puppy_math_answer"
-						min="1"
-						max="18"
 						required
 						aria-required="true" />
 					<input type="hidden"
