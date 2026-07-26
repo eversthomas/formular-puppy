@@ -177,6 +177,33 @@ class Puppy_Form_Handler {
 			return;
 		}
 
+		// Zeitlimit-Check: Submissions unter 5 Sekunden sind Bots.
+		$form_timestamp = isset( $_POST['puppy_form_timestamp'] )
+			? (int) $_POST['puppy_form_timestamp']
+			: 0;
+		$elapsed = time() - $form_timestamp;
+		if ( $form_timestamp === 0 || $elapsed < 5 || $elapsed > 3600 ) {
+			// Zu schnell (Bot) oder zu alt (> 1 Stunde, abgelaufene Session).
+			$this->redirect_with_query_arg( 'puppy_error', 'spam_detected' );
+			return;
+		}
+
+		// Math-Challenge-Prüfung.
+		$math_answer = isset( $_POST['puppy_math_answer'] )
+			? (int) $_POST['puppy_math_answer']
+			: -1;
+		$math_hash   = isset( $_POST['puppy_math_hash'] )
+			? sanitize_text_field( wp_unslash( $_POST['puppy_math_hash'] ) )
+			: '';
+		$math_valid  = hash_equals(
+			$math_hash,
+			wp_hash( (string) $math_answer . wp_salt() )
+		);
+		if ( ! $math_valid ) {
+			$this->redirect_with_query_arg( 'puppy_error', 'math_failed' );
+			return;
+		}
+
 		// 3b. IP-basierte Ratenbegrenzung (CHANGE 5)
 		/**
 		 * Ermittelt die echte Client-IP, auch hinter Reverse-Proxies.

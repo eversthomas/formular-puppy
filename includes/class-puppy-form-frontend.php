@@ -175,6 +175,12 @@ class Puppy_Form_Frontend {
 				case 'rate_limit':
 					$message = __( 'Zu viele Einsendungen. Bitte versuchen Sie es morgen erneut.', 'custom-puppy-form' );
 					break;
+				case 'spam_detected':
+					$message = __( 'Ihre Anfrage konnte nicht verarbeitet werden. Bitte laden Sie die Seite neu und versuchen Sie es erneut.', 'custom-puppy-form' );
+					break;
+				case 'math_failed':
+					$message = __( 'Die Antwort auf die Rechenaufgabe war leider nicht korrekt. Bitte versuchen Sie es erneut.', 'custom-puppy-form' );
+					break;
 				default:
 					$message = __( 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.', 'custom-puppy-form' );
 					break;
@@ -199,6 +205,7 @@ class Puppy_Form_Frontend {
 			<!-- Actions and CSRF nonces -->
 			<input type="hidden" name="action" value="puppy_form_submit">
 			<?php wp_nonce_field( 'puppy_submit_action', 'puppy_nonce_field' ); ?>
+			<input type="hidden" name="puppy_form_timestamp" value="<?php echo esc_attr( time() ); ?>" />
 
 			<!-- Bulletproof Redirection hidden parameter -->
 			<input type="hidden" name="puppy_page_url" value="<?php echo esc_url( $current_url ); ?>" />
@@ -365,6 +372,37 @@ class Puppy_Form_Frontend {
 							<?php esc_html_e( 'Ich habe die Ernährungsinfo gelesen und bestätige die Bereitschaft, das gewohnte Futter im Wachstum des Welpen weiterzufüttern (wichtig zur Vermeidung von Problemen durch Futterumstellungen).', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
 						</span>
 					</label>
+				</div>
+
+				<?php
+				$num1      = wp_rand( 1, 9 );
+				$num2      = wp_rand( 1, 9 );
+				$expected  = $num1 + $num2;
+				$math_hash = wp_hash( (string) $expected . wp_salt() );
+				?>
+				<div class="puppy-form-field">
+					<label for="puppy_math_answer">
+						<?php
+						echo esc_html(
+							sprintf(
+								/* translators: %1$d: first number, %2$d: second number */
+								__( 'Sicherheitsfrage: Was ergibt %1$d + %2$d?', 'custom-puppy-form' ),
+								$num1,
+								$num2
+							)
+						);
+						?> *
+					</label>
+					<input type="number"
+						id="puppy_math_answer"
+						name="puppy_math_answer"
+						min="1"
+						max="18"
+						required
+						aria-required="true" />
+					<input type="hidden"
+						name="puppy_math_hash"
+						value="<?php echo esc_attr( $math_hash ); ?>" />
 				</div>
 
 				<!-- Datenschutz-Zustimmungs-Checkbox -->
