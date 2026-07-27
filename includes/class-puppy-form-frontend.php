@@ -178,6 +178,9 @@ class Puppy_Form_Frontend {
 				case 'spam_detected':
 					$message = __( 'Ihre Anfrage konnte nicht verarbeitet werden. Bitte laden Sie die Seite neu und versuchen Sie es erneut.', 'custom-puppy-form' );
 					break;
+				case 'invalid_format':
+					$message = __( 'Bitte überprüfen Sie Ihre Eingaben. Name und Telefonnummer dürfen nur die üblichen Zeichen enthalten.', 'custom-puppy-form' );
+					break;
 				case 'math_failed':
 					$message = __( 'Die Antwort auf die Rechenaufgabe war leider nicht korrekt. Bitte versuchen Sie es erneut.', 'custom-puppy-form' );
 					break;
@@ -379,17 +382,24 @@ class Puppy_Form_Frontend {
 				$num2      = wp_rand( 1, 9 );
 				$expected  = $num1 + $num2;
 				$math_hash = wp_hash( (string) $expected . wp_salt() );
+				$zahlen    = array(
+					1 => 'eins',
+					2 => 'zwei',
+					3 => 'drei',
+					4 => 'vier',
+					5 => 'fünf',
+					6 => 'sechs',
+					7 => 'sieben',
+					8 => 'acht',
+					9 => 'neun',
+				);
 				?>
 				<div class="puppy-form-field">
 					<label for="puppy_math_answer">
 						<?php
 						echo esc_html(
-							sprintf(
-								/* translators: %1$d: first number, %2$d: second number */
-								__( 'Sicherheitsfrage: Was ergibt %1$d + %2$d?', 'custom-puppy-form' ),
-								$num1,
-								$num2
-							)
+							__( 'Sicherheitsfrage: ', 'custom-puppy-form' )
+							. 'Was ergibt ' . $zahlen[ $num1 ] . ' plus ' . $zahlen[ $num2 ] . '?'
 						);
 						?> *
 					</label>

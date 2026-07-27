@@ -177,12 +177,12 @@ class Puppy_Form_Handler {
 			return;
 		}
 
-		// Zeitlimit-Check: Submissions unter 5 Sekunden sind Bots.
+		// Zeitlimit-Check: Submissions unter 15 Sekunden sind Bots.
 		$form_timestamp = isset( $_POST['puppy_form_timestamp'] )
 			? (int) $_POST['puppy_form_timestamp']
 			: 0;
 		$elapsed = time() - $form_timestamp;
-		if ( $form_timestamp === 0 || $elapsed < 5 || $elapsed > 3600 ) {
+		if ( $form_timestamp === 0 || $elapsed < 15 || $elapsed > 3600 ) {
 			// Zu schnell (Bot) oder zu alt (> 1 Stunde, abgelaufene Session).
 			$this->redirect_with_query_arg( 'puppy_error', 'spam_detected' );
 			return;
@@ -201,6 +201,133 @@ class Puppy_Form_Handler {
 		);
 		if ( ! $math_valid ) {
 			$this->redirect_with_query_arg( 'puppy_error', 'math_failed' );
+			return;
+		}
+
+		// Spam-Inhaltsfilter: URLs und bekannte Spam-Muster.
+		$spam_patterns = array(
+			'http://', 'https://', 'www.',
+			't.me', 'telegram', '.com/', '.net/', '.org/',
+			'click here', 'financial fear', 'giveaway',
+			'promo', 'exclusive', 'Tesla', 'wise click',
+		);
+
+		// Auf Kyrillisch prüfen (Unicode-Block U+0400–U+04FF).
+		$cyrillic_pattern = '/[\x{0400}-\x{04FF}]/u';
+
+		// Diese Felder werden auf Spam-Inhalte geprüft.
+		$spam_check_fields = array(
+			'puppy_applicant_name',
+			'puppy_applicant_phone',
+			'puppy_applicant_address',
+			'puppy_traits',
+			'puppy_family_situation',
+			'puppy_living_situation',
+			'puppy_work_situation',
+			'puppy_dog_experience',
+			'puppy_selection_wish',
+			'puppy_other_pets',
+		);
+
+		foreach ( $spam_check_fields as $field ) {
+			$value = isset( $_POST[ $field ] )
+				? strtolower( $_POST[ $field ] )
+				: '';
+			// URL/Phrase-Check.
+			foreach ( $spam_patterns as $pattern ) {
+				if ( strpos( $value, strtolower( $pattern ) )
+					!== false ) {
+					$this->redirect_with_query_arg(
+						'puppy_error', 'spam_detected'
+					);
+					return;
+				}
+			}
+			// Kyrillisch-Check (auf Original-Wert, nicht lowercase).
+			$original = isset( $_POST[ $field ] )
+				? $_POST[ $field ] : '';
+			if ( preg_match( $cyrillic_pattern, $original ) ) {
+				$this->redirect_with_query_arg(
+					'puppy_error', 'spam_detected'
+				);
+				return;
+			}
+		}
+
+		// Feld-Format-Validierung.
+
+		// Name: nur Buchstaben, Leerzeichen, Bindestrich,
+		// Apostroph, Punkt — 2 bis 60 Zeichen.
+		// \p{L} matcht Buchstaben aller Sprachen (inkl. Umlaute).
+		$name_raw = isset( $_POST['puppy_applicant_name'] )
+			? $_POST['puppy_applicant_name'] : '';
+		if ( ! preg_match(
+			'/^[\p{L}\s\'\-\.]{2,60}$/u', $name_raw )
+		) {
+			$this->redirect_with_query_arg(
+				'puppy_error', 'invalid_format'
+			);
+			return;
+		}
+
+		// Telefon: Ziffern, +, -, Leerzeichen, Klammern
+		// — 6 bis 20 Zeichen.
+		$phone_raw = isset( $_POST['puppy_applicant_phone'] )
+			? $_POST['puppy_applicant_phone'] : '';
+		if ( ! preg_match(
+			'/^[\d\s\+\-\(\)]{6,20}$/', $phone_raw )
+		) {
+			$this->redirect_with_query_arg(
+				'puppy_error', 'invalid_format'
+			);
+			return;
+		}
+
+		// Alter: Integer, strikt zwischen 18 und 99.
+		$age_raw = isset( $_POST['puppy_applicant_age'] )
+			? (int) $_POST['puppy_applicant_age'] : 0;
+		if ( $age_raw < 18 || $age_raw > 99 ) {
+			$this->redirect_with_query_arg(
+				'puppy_error', 'invalid_format'
+			);
+			return;
+		}
+
+		// Freitextfelder: Mindestlänge 10 Zeichen.
+		$min_length_fields = array(
+			'puppy_traits',
+			'puppy_family_situation',
+			'puppy_living_situation',
+			'puppy_work_situation',
+			'puppy_dog_experience',
+			'puppy_selection_wish',
+		);
+		foreach ( $min_length_fields as $field ) {
+			$value = isset( $_POST[ $field ] )
+				? trim( $_POST[ $field ] ) : '';
+			if ( mb_strlen( $value ) < 10 ) {
+				$this->redirect_with_query_arg(
+					'puppy_error', 'missing_fields'
+				);
+				return;
+			}
+		}
+
+		// Konsistenz-Check: Name und Telefon dürfen nicht
+		// identisch sein — das ist ein eindeutiges Spam-Muster.
+		$name_trimmed  = trim( strtolower(
+			isset( $_POST['puppy_applicant_name'] )
+			? $_POST['puppy_applicant_name'] : ''
+		) );
+		$phone_trimmed = trim( strtolower(
+			isset( $_POST['puppy_applicant_phone'] )
+			? $_POST['puppy_applicant_phone'] : ''
+		) );
+		if ( ! empty( $name_trimmed )
+			&& $name_trimmed === $phone_trimmed ) {
+			$this->redirect_with_query_arg(
+				'puppy_error', 'spam_detected'
+			);
 			return;
 		}
 
