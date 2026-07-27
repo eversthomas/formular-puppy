@@ -311,6 +311,14 @@ class Puppy_Form_Handler {
 				);
 				return;
 			}
+			// Nur-Zahlen-Check: reiner Zahleninhalt ist kein
+			// sinnvoller Freitext.
+			if ( preg_match( '/^[\d\s]+$/', $value ) ) {
+				$this->redirect_with_query_arg(
+					'puppy_error', 'invalid_format'
+				);
+				return;
+			}
 		}
 
 		// Konsistenz-Check: Name und Telefon dürfen nicht
