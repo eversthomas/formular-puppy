@@ -258,66 +258,65 @@ class Puppy_Form_Handler {
 
 		// Name: nur Buchstaben, Leerzeichen, Bindestrich,
 		// Apostroph, Punkt — 2 bis 60 Zeichen.
-		// \p{L} matcht Buchstaben aller Sprachen (inkl. Umlaute).
-		$name_raw = isset( $_POST['puppy_applicant_name'] )
-			? $_POST['puppy_applicant_name'] : '';
-		if ( ! preg_match(
-			'/^[\p{L}\s\'\-\.]{2,60}$/u', $name_raw )
-		) {
-			$this->redirect_with_query_arg(
-				'puppy_error', 'invalid_format'
-			);
-			return;
+		if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_applicant_name' ) ) {
+			$name_raw = isset( $_POST['puppy_applicant_name'] ) ? $_POST['puppy_applicant_name'] : '';
+			if ( ! preg_match( '/^[\p{L}\s\'\-\.]{2,60}$/u', $name_raw ) ) {
+				$this->redirect_with_query_arg( 'puppy_error', 'invalid_format' );
+				return;
+			}
 		}
 
 		// Telefon: Ziffern, +, -, Leerzeichen, Klammern
 		// — 6 bis 20 Zeichen.
-		$phone_raw = isset( $_POST['puppy_applicant_phone'] )
-			? $_POST['puppy_applicant_phone'] : '';
-		if ( ! preg_match(
-			'/^[\d\s\+\-\(\)]{6,20}$/', $phone_raw )
-		) {
-			$this->redirect_with_query_arg(
-				'puppy_error', 'invalid_format'
-			);
-			return;
+		if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_applicant_phone' ) ) {
+			$phone_raw = isset( $_POST['puppy_applicant_phone'] ) ? $_POST['puppy_applicant_phone'] : '';
+			if ( ! preg_match( '/^[\d\s\+\-\(\)]{6,20}$/', $phone_raw ) ) {
+				$this->redirect_with_query_arg( 'puppy_error', 'invalid_format' );
+				return;
+			}
 		}
 
 		// Alter: Integer, strikt zwischen 18 und 99.
-		$age_raw = isset( $_POST['puppy_applicant_age'] )
-			? (int) $_POST['puppy_applicant_age'] : 0;
-		if ( $age_raw < 18 || $age_raw > 99 ) {
-			$this->redirect_with_query_arg(
-				'puppy_error', 'invalid_format'
-			);
-			return;
+		if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_applicant_age' ) ) {
+			$age_raw = isset( $_POST['puppy_applicant_age'] ) ? (int) $_POST['puppy_applicant_age'] : 0;
+			if ( $age_raw < 18 || $age_raw > 99 ) {
+				$this->redirect_with_query_arg( 'puppy_error', 'invalid_format' );
+				return;
+			}
 		}
 
 		// Freitextfelder: Mindestlänge 10 Zeichen.
 		$min_length_fields = array(
-			'puppy_traits',
-			'puppy_family_situation',
-			'puppy_living_situation',
-			'puppy_work_situation',
-			'puppy_dog_experience',
-			'puppy_selection_wish',
+			'puppy_traits'            => 'traits',
+			'puppy_family_situation'   => 'family_situation',
+			'puppy_living_situation'   => 'living_situation',
+			'puppy_work_situation'     => 'work_situation',
+			'puppy_dog_experience'     => 'dog_experience',
 		);
-		foreach ( $min_length_fields as $field ) {
-			$value = isset( $_POST[ $field ] )
-				? trim( $_POST[ $field ] ) : '';
-			if ( mb_strlen( $value ) < 10 ) {
-				$this->redirect_with_query_arg(
-					'puppy_error', 'missing_fields'
-				);
-				return;
+		foreach ( $min_length_fields as $field => $base_key ) {
+			$is_active = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_' . $base_key ) );
+			$is_required = ( '1' === Puppy_Form_Admin::get_setting( 'field_required_' . $base_key ) );
+			
+			if ( ! $is_active ) {
+				continue;
 			}
-			// Nur-Zahlen-Check: reiner Zahleninhalt ist kein
-			// sinnvoller Freitext.
-			if ( preg_match( '/^[\d\s]+$/', $value ) ) {
-				$this->redirect_with_query_arg(
-					'puppy_error', 'invalid_format'
-				);
-				return;
+			
+			$value = isset( $_POST[ $field ] ) ? trim( $_POST[ $field ] ) : '';
+			
+			if ( $is_required ) {
+				if ( mb_strlen( $value ) < 10 ) {
+					$this->redirect_with_query_arg( 'puppy_error', 'missing_fields' );
+					return;
+				}
+				if ( preg_match( '/^[\d\s]+$/', $value ) ) {
+					$this->redirect_with_query_arg( 'puppy_error', 'invalid_format' );
+					return;
+				}
+			} else {
+				if ( ! empty( $value ) && preg_match( '/^[\d\s]+$/', $value ) ) {
+					$this->redirect_with_query_arg( 'puppy_error', 'invalid_format' );
+					return;
+				}
 			}
 		}
 
@@ -374,22 +373,36 @@ class Puppy_Form_Handler {
 
 		// 4. Basic required check.
 		$required_fields = array(
-			'puppy_year',
-			'puppy_traits',
-			'puppy_applicant_name',
-			'puppy_applicant_age',
-			'puppy_applicant_email',
-			'puppy_applicant_phone',
-			'puppy_applicant_address',
-			'puppy_family_situation',
-			'puppy_living_situation',
-			'puppy_work_situation',
-			'puppy_dog_experience',
-			'puppy_selection_wish',
-			'puppy_other_pets',
 			'puppy_nutrition_agreement',
-			'puppy_privacy_agreement'
+			'puppy_privacy_agreement',
 		);
+		
+		$custom_required_map = array(
+			'puppy_year'              => 'field_required_year',
+			'puppy_traits'            => 'field_required_traits',
+			'puppy_applicant_name'    => 'field_required_applicant_name',
+			'puppy_applicant_age'     => 'field_required_applicant_age',
+			'puppy_applicant_email'    => 'field_required_applicant_email',
+			'puppy_applicant_phone'    => 'field_required_applicant_phone',
+			'puppy_applicant_address'  => 'field_required_applicant_address',
+			'puppy_family_situation'   => 'field_required_family_situation',
+			'puppy_living_situation'   => 'field_required_living_situation',
+			'puppy_work_situation'     => 'field_required_work_situation',
+			'puppy_dog_experience'     => 'field_required_dog_experience',
+			'puppy_selection_wish'     => 'field_required_selection_wish',
+			'puppy_other_pets'         => 'field_required_other_pets',
+		);
+
+		foreach ( $custom_required_map as $post_key => $option_key ) {
+			$field_base = str_replace( 'field_required_', '', $option_key );
+			$is_active = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_' . $field_base ) );
+			$is_required = ( '1' === Puppy_Form_Admin::get_setting( $option_key ) );
+			
+			if ( $is_active && $is_required ) {
+				$required_fields[] = $post_key;
+			}
+		}
+
 		foreach ( $required_fields as $field ) {
 			if ( empty( $_POST[ $field ] ) ) {
 				$this->redirect_with_query_arg( 'puppy_error', 'missing_fields' );
@@ -397,39 +410,66 @@ class Puppy_Form_Handler {
 			}
 		}
 
-		// 5. Dropdown Whitelist Validation (CHANGE 3 part C).
-		$posted_year            = sanitize_text_field( $_POST['puppy_year'] );
+		// 5. Dropdown Whitelist Validation.
+		$posted_year            = sanitize_text_field( $_POST['puppy_year'] ?? '' );
 		$years_whitelist_option = Puppy_Form_Admin::get_setting( 'puppy_years_whitelist' );
 		$allowed_years          = array_map( 'trim', explode( "\n", $years_whitelist_option ) );
-		if ( ! in_array( $posted_year, $allowed_years, true ) ) {
-			$this->redirect_with_query_arg( 'puppy_error', 'missing_fields' );
-			return;
+		if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_year' ) ) {
+			if ( ! in_array( $posted_year, $allowed_years, true ) ) {
+				$this->redirect_with_query_arg( 'puppy_error', 'missing_fields' );
+				return;
+			}
+		}
+
+		$posted_wish = sanitize_text_field( $_POST['puppy_selection_wish'] ?? '' );
+		if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_selection_wish' ) ) {
+			if ( ! in_array( $posted_wish, array( 'Rüde', 'Hündin', 'Egal' ), true ) ) {
+				$this->redirect_with_query_arg( 'puppy_error', 'missing_fields' );
+				return;
+			}
 		}
 
 		// Email format validation.
-		$email_input = sanitize_email( $_POST['puppy_applicant_email'] );
-		if ( ! is_email( $email_input ) ) {
-			$this->redirect_with_query_arg( 'puppy_error', 'invalid_email' );
-			return;
+		$email_input = sanitize_email( $_POST['puppy_applicant_email'] ?? '' );
+		if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_applicant_email' ) ) {
+			if ( ! is_email( $email_input ) ) {
+				$this->redirect_with_query_arg( 'puppy_error', 'invalid_email' );
+				return;
+			}
 		}
 
-		// 6. Full input sanitization (CHANGE 4 part B).
-		$target_year          = $posted_year;
-		$traits               = $this->prepare_freetext_for_db( $_POST['puppy_traits'] );
-		$purpose_family       = isset( $_POST['puppy_purpose_family'] ) ? 1 : 0;
-		$purpose_sport        = isset( $_POST['puppy_purpose_sport'] ) ? 1 : 0;
-		$purpose_therapy      = isset( $_POST['puppy_purpose_therapy'] ) ? 1 : 0;
-		$applicant_name       = $this->prepare_short_text_for_db( $_POST['puppy_applicant_name'], 255 );
-		$applicant_age        = $this->prepare_short_text_for_db( $_POST['puppy_applicant_age'], 20 );
-		$applicant_email      = $this->limit_multibyte_length( $email_input, 255 );
-		$applicant_phone      = $this->prepare_short_text_for_db( $_POST['puppy_applicant_phone'], 100 );
-		$applicant_address    = $this->prepare_freetext_for_db( $_POST['puppy_applicant_address'] );
-		$family_situation     = $this->prepare_freetext_for_db( $_POST['puppy_family_situation'] );
-		$living_situation     = $this->prepare_freetext_for_db( $_POST['puppy_living_situation'] );
-		$work_situation       = $this->prepare_freetext_for_db( $_POST['puppy_work_situation'] );
-		$dog_experience       = $this->prepare_freetext_for_db( $_POST['puppy_dog_experience'] );
-		$selection_wish       = $this->prepare_freetext_for_db( $_POST['puppy_selection_wish'] );
-		$other_pets           = $this->prepare_freetext_for_db( $_POST['puppy_other_pets'] );
+		// 6. Full input sanitization.
+		$active_year = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_year' ) );
+		$active_traits = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_traits' ) );
+		$active_purpose = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_purpose' ) );
+		$active_applicant_name = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_applicant_name' ) );
+		$active_applicant_age = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_applicant_age' ) );
+		$active_applicant_email = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_applicant_email' ) );
+		$active_applicant_phone = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_applicant_phone' ) );
+		$active_applicant_address = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_applicant_address' ) );
+		$active_family_situation = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_family_situation' ) );
+		$active_living_situation = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_living_situation' ) );
+		$active_work_situation = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_work_situation' ) );
+		$active_dog_experience = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_dog_experience' ) );
+		$active_selection_wish = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_selection_wish' ) );
+		$active_other_pets = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_other_pets' ) );
+
+		$target_year          = $active_year ? $posted_year : '';
+		$traits               = $active_traits ? $this->prepare_freetext_for_db( $_POST['puppy_traits'] ?? '' ) : '';
+		$purpose_family       = ( $active_purpose && isset( $_POST['puppy_purpose_family'] ) ) ? 1 : 0;
+		$purpose_sport        = ( $active_purpose && isset( $_POST['puppy_purpose_sport'] ) ) ? 1 : 0;
+		$purpose_therapy      = ( $active_purpose && isset( $_POST['puppy_purpose_therapy'] ) ) ? 1 : 0;
+		$applicant_name       = $active_applicant_name ? $this->prepare_short_text_for_db( $_POST['puppy_applicant_name'] ?? '', 255 ) : '';
+		$applicant_age        = $active_applicant_age ? $this->prepare_short_text_for_db( $_POST['puppy_applicant_age'] ?? '', 20 ) : '';
+		$applicant_email      = $active_applicant_email ? $this->limit_multibyte_length( $email_input, 255 ) : '';
+		$applicant_phone      = $active_applicant_phone ? $this->prepare_short_text_for_db( $_POST['puppy_applicant_phone'] ?? '', 100 ) : '';
+		$applicant_address    = $active_applicant_address ? $this->prepare_freetext_for_db( $_POST['puppy_applicant_address'] ?? '' ) : '';
+		$family_situation     = $active_family_situation ? $this->prepare_freetext_for_db( $_POST['puppy_family_situation'] ?? '' ) : '';
+		$living_situation     = $active_living_situation ? $this->prepare_freetext_for_db( $_POST['puppy_living_situation'] ?? '' ) : '';
+		$work_situation       = $active_work_situation ? $this->prepare_freetext_for_db( $_POST['puppy_work_situation'] ?? '' ) : '';
+		$dog_experience       = $active_dog_experience ? $this->prepare_freetext_for_db( $_POST['puppy_dog_experience'] ?? '' ) : '';
+		$selection_wish       = $active_selection_wish ? $posted_wish : '';
+		$other_pets           = $active_other_pets ? $this->prepare_freetext_for_db( $_POST['puppy_other_pets'] ?? '' ) : '';
 		$nutrition_agreement  = 1;
 		$privacy_agreement    = 1;
 

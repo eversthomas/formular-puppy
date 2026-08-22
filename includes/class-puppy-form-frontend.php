@@ -239,144 +239,201 @@ class Puppy_Form_Frontend {
 			<fieldset class="puppy-fieldset">
 				<legend class="puppy-legend"><?php esc_html_e( 'A) Interessenbekundung', 'custom-puppy-form' ); ?></legend>
 				
-				<div class="puppy-form-group">
-					<label for="puppy_year" class="puppy-label">
-						<?php esc_html_e( 'Für welches Jahr / zu wann suchst Du einen Welpen?', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
-					</label>
-					<select name="puppy_year" id="puppy_year" class="puppy-select" required aria-required="true">
-						<option value=""><?php esc_html_e( '-- Bitte auswählen --', 'custom-puppy-form' ); ?></option>
-						<?php
-						$years_whitelist_option = Puppy_Form_Admin::get_setting( 'puppy_years_whitelist' );
-						$allowed_years          = array_map( 'trim', explode( "\n", $years_whitelist_option ) );
-						foreach ( $allowed_years as $year_val ) {
-							if ( empty( $year_val ) ) {
-								continue;
+				<?php if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_year' ) ) : 
+					$req_year = ( '1' === Puppy_Form_Admin::get_setting( 'field_required_year' ) );
+					?>
+					<div class="puppy-form-group">
+						<label for="puppy_year" class="puppy-label">
+							<?php esc_html_e( 'Für welches Jahr / zu wann suchst Du einen Welpen?', 'custom-puppy-form' ); ?> <?php if ( $req_year ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
+						</label>
+						<select name="puppy_year" id="puppy_year" class="puppy-select" <?php if ( $req_year ) echo 'required aria-required="true"'; ?>>
+							<option value=""><?php esc_html_e( '-- Bitte auswählen --', 'custom-puppy-form' ); ?></option>
+							<?php
+							$years_whitelist_option = Puppy_Form_Admin::get_setting( 'puppy_years_whitelist' );
+							$allowed_years          = array_map( 'trim', explode( "\n", $years_whitelist_option ) );
+							foreach ( $allowed_years as $year_val ) {
+								if ( empty( $year_val ) ) {
+									continue;
+								}
+								echo '<option value="' . esc_attr( $year_val ) . '">' . esc_html( $year_val ) . '</option>';
 							}
-							echo '<option value="' . esc_attr( $year_val ) . '">' . esc_html( $year_val ) . '</option>';
-						}
-						?>
-					</select>
-				</div>
+							?>
+						</select>
+					</div>
+				<?php endif; ?>
 
-				<div class="puppy-form-group">
-					<label for="puppy_traits" class="puppy-label">
-						<?php esc_html_e( 'Welche Eigenschaften soll Dein Vierbeiner mitbringen?', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
-					</label>
-					<?php $this->render_limited_textarea( 'puppy_traits', 'puppy_traits', 10 ); ?>
-				</div>
+				<?php if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_traits' ) ) : 
+					$req_traits = ( '1' === Puppy_Form_Admin::get_setting( 'field_required_traits' ) );
+					?>
+					<div class="puppy-form-group">
+						<label for="puppy_traits" class="puppy-label">
+							<?php esc_html_e( 'Welche Eigenschaften soll Dein Vierbeiner mitbringen?', 'custom-puppy-form' ); ?> <?php if ( $req_traits ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
+						</label>
+						<?php $this->render_limited_textarea( 'puppy_traits', 'puppy_traits', $req_traits ? 10 : 0 ); ?>
+					</div>
+				<?php endif; ?>
 
-				<div class="puppy-form-group">
-					<label class="puppy-label"><?php esc_html_e( 'Unser neues Familienmitglied soll...', 'custom-puppy-form' ); ?></label>
-					
-					<div class="puppy-form-checkbox-group" style="margin-bottom: 8px;">
-						<label for="puppy_purpose_family" class="puppy-label-checkbox">
-							<input type="checkbox" name="puppy_purpose_family" id="puppy_purpose_family" class="puppy-input-checkbox" value="1" />
-							<span><?php esc_html_e( 'als Familienhund leben', 'custom-puppy-form' ); ?></span>
-						</label>
+				<?php if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_purpose' ) ) : ?>
+					<div class="puppy-form-group">
+						<label class="puppy-label"><?php esc_html_e( 'Unser neues Familienmitglied soll...', 'custom-puppy-form' ); ?></label>
+						
+						<div class="puppy-form-checkbox-group" style="margin-bottom: 8px;">
+							<label for="puppy_purpose_family" class="puppy-label-checkbox">
+								<input type="checkbox" name="puppy_purpose_family" id="puppy_purpose_family" class="puppy-input-checkbox" value="1" />
+								<span><?php esc_html_e( 'als Familienhund leben', 'custom-puppy-form' ); ?></span>
+							</label>
+						</div>
+						
+						<div class="puppy-form-checkbox-group" style="margin-bottom: 8px;">
+							<label for="puppy_purpose_sport" class="puppy-label-checkbox">
+								<input type="checkbox" name="puppy_purpose_sport" id="puppy_purpose_sport" class="puppy-input-checkbox" value="1" />
+								<span><?php esc_html_e( 'sportlich geführt werden', 'custom-puppy-form' ); ?></span>
+							</label>
+						</div>
+						
+						<div class="puppy-form-checkbox-group">
+							<label for="puppy_purpose_therapy" class="puppy-label-checkbox">
+								<input type="checkbox" name="puppy_purpose_therapy" id="puppy_purpose_therapy" class="puppy-input-checkbox" value="1" />
+								<span><?php esc_html_e( 'im Therapiebereich ausgebildet werden', 'custom-puppy-form' ); ?></span>
+							</label>
+						</div>
 					</div>
-					
-					<div class="puppy-form-checkbox-group" style="margin-bottom: 8px;">
-						<label for="puppy_purpose_sport" class="puppy-label-checkbox">
-							<input type="checkbox" name="puppy_purpose_sport" id="puppy_purpose_sport" class="puppy-input-checkbox" value="1" />
-							<span><?php esc_html_e( 'sportlich geführt werden', 'custom-puppy-form' ); ?></span>
-						</label>
-					</div>
-					
-					<div class="puppy-form-checkbox-group">
-						<label for="puppy_purpose_therapy" class="puppy-label-checkbox">
-							<input type="checkbox" name="puppy_purpose_therapy" id="puppy_purpose_therapy" class="puppy-input-checkbox" value="1" />
-							<span><?php esc_html_e( 'im Therapiebereich ausgebildet werden', 'custom-puppy-form' ); ?></span>
-						</label>
-					</div>
-				</div>
+				<?php endif; ?>
 			</fieldset>
 
 			<!-- Bereich B: Angaben zur anfragenden Familie -->
 			<fieldset class="puppy-fieldset">
 				<legend class="puppy-legend"><?php esc_html_e( 'B) Angaben zur anfragenden Familie', 'custom-puppy-form' ); ?></legend>
 
-				<div class="puppy-form-group">
-					<label for="puppy_applicant_name" class="puppy-label">
-						<?php
-						$label_name = Puppy_Form_Admin::get_setting( 'field_label_name' );
-						if ( empty( $label_name ) ) {
-							$label_name = __( 'Vollständiger Name', 'custom-puppy-form' );
-						}
-						echo esc_html( $label_name );
-						?> <span class="required" aria-hidden="true">*</span>
-					</label>
-					<input type="text" name="puppy_applicant_name" id="puppy_applicant_name" class="puppy-input-text" required aria-required="true" />
-				</div>
+				<?php if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_applicant_name' ) ) : 
+					$req_name = ( '1' === Puppy_Form_Admin::get_setting( 'field_required_applicant_name' ) );
+					$label_name = Puppy_Form_Admin::get_setting( 'field_label_name' );
+					if ( empty( $label_name ) ) {
+						$label_name = __( 'Vollständiger Name', 'custom-puppy-form' );
+					}
+					?>
+					<div class="puppy-form-group">
+						<label for="puppy_applicant_name" class="puppy-label">
+							<?php echo esc_html( $label_name ); ?> <?php if ( $req_name ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
+						</label>
+						<input type="text" name="puppy_applicant_name" id="puppy_applicant_name" class="puppy-input-text" <?php if ( $req_name ) echo 'required aria-required="true"'; ?> />
+					</div>
+				<?php endif; ?>
 
-				<div class="puppy-form-group">
-					<label for="puppy_applicant_age" class="puppy-label">
-						<?php esc_html_e( 'Alter (Ansprechpartner)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
-					</label>
-					<input type="number" name="puppy_applicant_age" id="puppy_applicant_age" class="puppy-input-text" min="18" max="99" required aria-required="true" />
-				</div>
+				<?php if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_applicant_age' ) ) : 
+					$req_age = ( '1' === Puppy_Form_Admin::get_setting( 'field_required_applicant_age' ) );
+					?>
+					<div class="puppy-form-group">
+						<label for="puppy_applicant_age" class="puppy-label">
+							<?php esc_html_e( 'Alter (Ansprechpartner)', 'custom-puppy-form' ); ?> <?php if ( $req_age ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
+						</label>
+						<input type="number" name="puppy_applicant_age" id="puppy_applicant_age" class="puppy-input-text" min="18" max="99" <?php if ( $req_age ) echo 'required aria-required="true"'; ?> />
+					</div>
+				<?php endif; ?>
 
-				<div class="puppy-form-group">
-					<label for="puppy_applicant_email" class="puppy-label">
-						<?php esc_html_e( 'E-Mail-Adresse', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
-					</label>
-					<input type="email" name="puppy_applicant_email" id="puppy_applicant_email" class="puppy-input-email" required aria-required="true" />
-				</div>
+				<?php if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_applicant_email' ) ) : 
+					$req_email = ( '1' === Puppy_Form_Admin::get_setting( 'field_required_applicant_email' ) );
+					?>
+					<div class="puppy-form-group">
+						<label for="puppy_applicant_email" class="puppy-label">
+							<?php esc_html_e( 'E-Mail-Adresse', 'custom-puppy-form' ); ?> <?php if ( $req_email ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
+						</label>
+						<input type="email" name="puppy_applicant_email" id="puppy_applicant_email" class="puppy-input-email" <?php if ( $req_email ) echo 'required aria-required="true"'; ?> />
+					</div>
+				<?php endif; ?>
 
-				<div class="puppy-form-group">
-					<label for="puppy_applicant_phone" class="puppy-label">
-						<?php esc_html_e( 'Handy / Telefonnummer', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
-					</label>
-					<input type="tel" name="puppy_applicant_phone" id="puppy_applicant_phone" class="puppy-input-tel" required aria-required="true" />
-				</div>
+				<?php if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_applicant_phone' ) ) : 
+					$req_phone = ( '1' === Puppy_Form_Admin::get_setting( 'field_required_applicant_phone' ) );
+					?>
+					<div class="puppy-form-group">
+						<label for="puppy_applicant_phone" class="puppy-label">
+							<?php esc_html_e( 'Handy / Telefonnummer', 'custom-puppy-form' ); ?> <?php if ( $req_phone ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
+						</label>
+						<input type="tel" name="puppy_applicant_phone" id="puppy_applicant_phone" class="puppy-input-tel" <?php if ( $req_phone ) echo 'required aria-required="true"'; ?> />
+					</div>
+				<?php endif; ?>
 
-				<div class="puppy-form-group">
-					<label for="puppy_applicant_address" class="puppy-label">
-						<?php esc_html_e( 'Anschrift (Straße, PLZ, Ort)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
-					</label>
-					<?php $this->render_limited_input( 'puppy_applicant_address', 'puppy_applicant_address' ); ?>
-				</div>
+				<?php if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_applicant_address' ) ) : 
+					$req_address = ( '1' === Puppy_Form_Admin::get_setting( 'field_required_applicant_address' ) );
+					?>
+					<div class="puppy-form-group">
+						<label for="puppy_applicant_address" class="puppy-label">
+							<?php esc_html_e( 'Anschrift (Straße, PLZ, Ort)', 'custom-puppy-form' ); ?> <?php if ( $req_address ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
+						</label>
+						<?php $this->render_limited_input( 'puppy_applicant_address', 'puppy_applicant_address', 'puppy-input-text', 'text', $req_address ? 10 : 0 ); ?>
+					</div>
+				<?php endif; ?>
 
-				<div class="puppy-form-group">
-					<label for="puppy_family_situation" class="puppy-label">
-						<?php esc_html_e( 'Familiensituation (Anzahl Personen im Haushalt, ggf. Kinder mit Altersangabe)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
-					</label>
-					<?php $this->render_limited_textarea( 'puppy_family_situation', 'puppy_family_situation', 10 ); ?>
-				</div>
+				<?php if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_family_situation' ) ) : 
+					$req_family = ( '1' === Puppy_Form_Admin::get_setting( 'field_required_family_situation' ) );
+					?>
+					<div class="puppy-form-group">
+						<label for="puppy_family_situation" class="puppy-label">
+							<?php esc_html_e( 'Familiensituation (Anzahl Personen im Haushalt, ggf. Kinder mit Altersangabe)', 'custom-puppy-form' ); ?> <?php if ( $req_family ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
+						</label>
+						<?php $this->render_limited_textarea( 'puppy_family_situation', 'puppy_family_situation', $req_family ? 10 : 0 ); ?>
+					</div>
+				<?php endif; ?>
 
-				<div class="puppy-form-group">
-					<label for="puppy_living_situation" class="puppy-label">
-						<?php esc_html_e( 'Wohnsituation / Größe (Wohnung, Haus, Garten, Hof)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
-					</label>
-					<?php $this->render_limited_textarea( 'puppy_living_situation', 'puppy_living_situation', 10 ); ?>
-				</div>
+				<?php if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_living_situation' ) ) : 
+					$req_living = ( '1' === Puppy_Form_Admin::get_setting( 'field_required_living_situation' ) );
+					?>
+					<div class="puppy-form-group">
+						<label for="puppy_living_situation" class="puppy-label">
+							<?php esc_html_e( 'Wohnsituation / Größe (Wohnung, Haus, Garten, Hof)', 'custom-puppy-form' ); ?> <?php if ( $req_living ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
+						</label>
+						<?php $this->render_limited_textarea( 'puppy_living_situation', 'puppy_living_situation', $req_living ? 10 : 0 ); ?>
+					</div>
+				<?php endif; ?>
 
-				<div class="puppy-form-group">
-					<label for="puppy_work_situation" class="puppy-label">
-						<?php esc_html_e( 'Arbeitssituation (Berufstätigkeitsumfang, Std. pro Tag, ggf. Home-Office usw.)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
-					</label>
-					<?php $this->render_limited_textarea( 'puppy_work_situation', 'puppy_work_situation', 10 ); ?>
-				</div>
+				<?php if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_work_situation' ) ) : 
+					$req_work = ( '1' === Puppy_Form_Admin::get_setting( 'field_required_work_situation' ) );
+					?>
+					<div class="puppy-form-group">
+						<label for="puppy_work_situation" class="puppy-label">
+							<?php esc_html_e( 'Arbeitssituation (Berufstätigkeitsumfang, Std. pro Tag, ggf. Home-Office usw.)', 'custom-puppy-form' ); ?> <?php if ( $req_work ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
+						</label>
+						<?php $this->render_limited_textarea( 'puppy_work_situation', 'puppy_work_situation', $req_work ? 10 : 0 ); ?>
+					</div>
+				<?php endif; ?>
 
-				<div class="puppy-form-group">
-					<label for="puppy_dog_experience" class="puppy-label">
-						<?php esc_html_e( 'Vorerfahrungen in der Hundehaltung (Wenn ja, welche Rasse?)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
-					</label>
-					<?php $this->render_limited_textarea( 'puppy_dog_experience', 'puppy_dog_experience', 10 ); ?>
-				</div>
+				<?php if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_dog_experience' ) ) : 
+					$req_exp = ( '1' === Puppy_Form_Admin::get_setting( 'field_required_dog_experience' ) );
+					?>
+					<div class="puppy-form-group">
+						<label for="puppy_dog_experience" class="puppy-label">
+							<?php esc_html_e( 'Vorerfahrungen in der Hundehaltung (Wenn ja, welche Rasse?)', 'custom-puppy-form' ); ?> <?php if ( $req_exp ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
+						</label>
+						<?php $this->render_limited_textarea( 'puppy_dog_experience', 'puppy_dog_experience', $req_exp ? 10 : 0 ); ?>
+					</div>
+				<?php endif; ?>
 
-				<div class="puppy-form-group">
-					<label for="puppy_selection_wish" class="puppy-label">
-						<?php esc_html_e( 'Welpenauswahl (Geschlechterwunsch / Farbwunsch / Egal)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
-					</label>
-					<?php $this->render_limited_textarea( 'puppy_selection_wish', 'puppy_selection_wish', 10 ); ?>
-				</div>
+				<?php if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_selection_wish' ) ) : 
+					$req_wish = ( '1' === Puppy_Form_Admin::get_setting( 'field_required_selection_wish' ) );
+					?>
+					<div class="puppy-form-group">
+						<label for="puppy_selection_wish" class="puppy-label">
+							<?php esc_html_e( 'Welpenauswahl (Geschlecht)', 'custom-puppy-form' ); ?> <?php if ( $req_wish ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
+						</label>
+						<select name="puppy_selection_wish" id="puppy_selection_wish" class="puppy-select" <?php if ( $req_wish ) echo 'required aria-required="true"'; ?>>
+							<option value=""><?php esc_html_e( '-- Bitte auswählen --', 'custom-puppy-form' ); ?></option>
+							<option value="Rüde"><?php esc_html_e( 'Rüde', 'custom-puppy-form' ); ?></option>
+							<option value="Hündin"><?php esc_html_e( 'Hündin', 'custom-puppy-form' ); ?></option>
+							<option value="Egal"><?php esc_html_e( 'Egal', 'custom-puppy-form' ); ?></option>
+						</select>
+					</div>
+				<?php endif; ?>
 
-				<div class="puppy-form-group">
-					<label for="puppy_other_pets" class="puppy-label">
-						<?php esc_html_e( 'Tierische Mitbewohner (Habt ihr bereits Tiere, mit denen der Welpe aufwachsen wird?)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
-					</label>
-					<?php $this->render_limited_textarea( 'puppy_other_pets', 'puppy_other_pets' ); ?>
-				</div>
+				<?php if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_other_pets' ) ) : 
+					$req_pets = ( '1' === Puppy_Form_Admin::get_setting( 'field_required_other_pets' ) );
+					?>
+					<div class="puppy-form-group">
+						<label for="puppy_other_pets" class="puppy-label">
+							<?php esc_html_e( 'Tierische Mitbewohner (Habt ihr bereits Tiere, mit denen der Welpe aufwachsen wird?)', 'custom-puppy-form' ); ?> <?php if ( $req_pets ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
+						</label>
+						<?php $this->render_limited_textarea( 'puppy_other_pets', 'puppy_other_pets', $req_pets ? 10 : 0 ); ?>
+					</div>
+				<?php endif; ?>
 			</fieldset>
 
 			<!-- Bereich C: Wichtige Ernährungsinfo & Datenschutz -->
@@ -455,8 +512,10 @@ class Puppy_Form_Frontend {
 			var fields = document.querySelectorAll('.puppy-application-form-container .puppy-limited-field');
 			fields.forEach(function (field) {
 				var max = parseInt(field.getAttribute('data-char-max'), 10) || parseInt(field.getAttribute('maxlength'), 10) || 2000;
+				var min = parseInt(field.getAttribute('minlength'), 10) || 0;
 				var counter = document.getElementById(field.id + '-counter');
 				var valueNode = counter ? counter.querySelector('.puppy-char-counter-value') : null;
+				var minHintNode = counter ? counter.querySelector('.puppy-char-min-hint') : null;
 
 				function enforceLimit() {
 					if (field.value.length > max) {
@@ -471,9 +530,25 @@ class Puppy_Form_Frontend {
 					valueNode.textContent = Math.max(0, max - field.value.length);
 				}
 
+				function validateMinLength() {
+					if (!minHintNode || min <= 0) {
+						return;
+					}
+					var len = field.value.length;
+					if (len > 0 && len < min) {
+						var missing = min - len;
+						minHintNode.textContent = "Noch " + missing + " Zeichen benötigt";
+						counter.classList.add('puppy-counter-invalid');
+					} else {
+						minHintNode.textContent = "Mindestens " + min + " Zeichen";
+						counter.classList.remove('puppy-counter-invalid');
+					}
+				}
+
 				function syncField() {
 					enforceLimit();
 					updateCounter();
+					validateMinLength();
 				}
 
 				field.addEventListener('input', syncField);

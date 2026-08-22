@@ -102,7 +102,39 @@ class Puppy_Form_Admin {
 			'field_options_working'      => 'Weniger als 2 Stunden, 2 bis 5 Stunden, Mehr als 5 Stunden',
 			'field_label_experience'    => 'Hundeerfahrung',
 			'field_label_privacy'       => 'Ich stimme der Datenschutzerklärung zu und willige in die Verarbeitung meiner Daten ein.',
-			'custom_email_body'         => "Hallo {name},\n\nvielen Dank für Ihre Bewerbung für einen unserer Welpen!\n\nWir freuen uns über Ihr Interesse. Der aktuelle Preis für einen Welpen beträgt {price}.\n\nWir werden Ihre Angaben in den nächsten Tagen sorgfältig prüfen und uns bezüglich der weiteren Schritte bei Ihnen melden.\n\nHerzliche Grüße,\nBezugssysteme Digitalagentur",
+			'custom_email_body'         => "Hallo {name},\n\nvielen Dank für Ihre Bewerbung für einen Welpen!\n\nWir freuen uns über Ihr Interesse. Der aktuelle Preis für einen Welpen beträgt {price}.\n\nWir werden Ihre Angaben in den nächsten Tagen sorgfältig prüfen und uns bezüglich der weiteren Schritte bei Ihnen melden.\n\nHerzliche Grüße,\nBezugssysteme Digitalagentur",
+			
+			// Fields Active status
+			'field_active_year'              => '1',
+			'field_active_traits'            => '1',
+			'field_active_purpose'           => '1',
+			'field_active_applicant_name'    => '1',
+			'field_active_applicant_age'     => '1',
+			'field_active_applicant_email'    => '1',
+			'field_active_applicant_phone'    => '1',
+			'field_active_applicant_address'  => '1',
+			'field_active_family_situation'   => '1',
+			'field_active_living_situation'   => '1',
+			'field_active_work_situation'     => '1',
+			'field_active_dog_experience'     => '1',
+			'field_active_selection_wish'     => '1',
+			'field_active_other_pets'         => '1',
+
+			// Fields Required status
+			'field_required_year'             => '1',
+			'field_required_traits'           => '1',
+			'field_required_purpose'          => '0',
+			'field_required_applicant_name'   => '1',
+			'field_required_applicant_age'    => '1',
+			'field_required_applicant_email'   => '1',
+			'field_required_applicant_phone'   => '1',
+			'field_required_applicant_address' => '1',
+			'field_required_family_situation'  => '1',
+			'field_required_living_situation'  => '1',
+			'field_required_work_situation'    => '1',
+			'field_required_dog_experience'    => '1',
+			'field_required_selection_wish'    => '1',
+			'field_required_other_pets'        => '1',
 		);
 
 		return isset( $defaults[ $option_name ] ) ? $defaults[ $option_name ] : '';
@@ -216,6 +248,14 @@ class Puppy_Form_Admin {
 			__( 'Bewerbungsfelder konfigurieren', 'custom-puppy-form' ),
 			array( $this, 'render_fields_section_desc' ),
 			'puppy-form-settings-page'
+		);
+
+		add_settings_field(
+			'puppy_app_fields_status_table',
+			__( 'Formularfelder aktivieren / Pflichtfelder festlegen', 'custom-puppy-form' ),
+			array( $this, 'render_fields_status_table' ),
+			'puppy-form-settings-page',
+			'puppy_app_fields_section'
 		);
 
 		add_settings_field(
@@ -354,9 +394,20 @@ class Puppy_Form_Admin {
 			$sanitized['puppy_years_whitelist'] = implode( "\n", $sanitized_years );
 		}
 
-		// Sanitize checkboxes on Tab 1. Only process if form submitted from Tab 1 (indicated by price field being present).
+		// Sanitize field active / required checkboxes.
 		if ( isset( $input['puppy_price'] ) ) {
 			$sanitized['delete_data_on_uninstall'] = isset( $input['delete_data_on_uninstall'] ) && '1' === $input['delete_data_on_uninstall'] ? '1' : '0';
+			
+			$fields_keys = array(
+				'year', 'traits', 'purpose', 'applicant_name', 'applicant_age',
+				'applicant_email', 'applicant_phone', 'applicant_address',
+				'family_situation', 'living_situation', 'work_situation',
+				'dog_experience', 'selection_wish', 'other_pets'
+			);
+			foreach ( $fields_keys as $key ) {
+				$sanitized['field_active_' . $key] = isset( $input['field_active_' . $key] ) && '1' === $input['field_active_' . $key] ? '1' : '0';
+				$sanitized['field_required_' . $key] = isset( $input['field_required_' . $key] ) && '1' === $input['field_required_' . $key] ? '1' : '0';
+			}
 		}
 
 		// Sanitize privacy activation key if present in input (to preserve direct database updates).
@@ -448,6 +499,69 @@ class Puppy_Form_Admin {
 		} else {
 			echo '<span class="puppy-privacy-badge" style="background: #fdf2f2; color: #8c2424; border-left: 3px solid #e74c3c;">✗ ' . esc_html__( 'Wartemodus: Freischaltung steht aus', 'custom-puppy-form' ) . '</span>';
 		}
+	}
+
+	public function render_fields_status_table() {
+		$fields = array(
+			'year'              => __( 'Wunschjahr', 'custom-puppy-form' ),
+			'traits'            => __( 'Gewünschte Eigenschaften', 'custom-puppy-form' ),
+			'purpose'           => __( 'Verwendungszweck (Checkboxen)', 'custom-puppy-form' ),
+			'applicant_name'    => __( 'Name (Bewerber)', 'custom-puppy-form' ),
+			'applicant_age'     => __( 'Alter (Ansprechpartner)', 'custom-puppy-form' ),
+			'applicant_email'   => __( 'E-Mail-Adresse', 'custom-puppy-form' ),
+			'applicant_phone'   => __( 'Handy / Telefonnummer', 'custom-puppy-form' ),
+			'applicant_address' => __( 'Anschrift (Straße, PLZ, Ort)', 'custom-puppy-form' ),
+			'family_situation'  => __( 'Familiensituation', 'custom-puppy-form' ),
+			'living_situation'  => __( 'Wohnsituation / Größe', 'custom-puppy-form' ),
+			'work_situation'    => __( 'Arbeitssituation', 'custom-puppy-form' ),
+			'dog_experience'    => __( 'Vorerfahrungen', 'custom-puppy-form' ),
+			'selection_wish'    => __( 'Welpenauswahl (Geschlecht)', 'custom-puppy-form' ),
+			'other_pets'        => __( 'Tierische Mitbewohner', 'custom-puppy-form' ),
+		);
+		?>
+		<table class="wp-list-table widefat fixed striped puppy-fields-status-table" style="max-width: 600px; margin-top: 10px;">
+			<thead>
+				<tr>
+					<th scope="col" style="padding: 10px; font-weight: 600;"><?php esc_html_e( 'Feldname', 'custom-puppy-form' ); ?></th>
+					<th scope="col" style="padding: 10px; font-weight: 600; text-align: center; width: 120px;"><?php esc_html_e( 'Aktivieren', 'custom-puppy-form' ); ?></th>
+					<th scope="col" style="padding: 10px; font-weight: 600; text-align: center; width: 120px;"><?php esc_html_e( 'Pflichtfeld', 'custom-puppy-form' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( $fields as $key => $label ) : 
+					$is_locked = ( 'applicant_name' === $key || 'applicant_email' === $key );
+					
+					$active = self::get_setting( 'field_active_' . $key );
+					$required = self::get_setting( 'field_required_' . $key );
+					?>
+					<tr>
+						<td style="padding: 10px; font-weight: 500; vertical-align: middle;"><?php echo esc_html( $label ); ?></td>
+						<td style="padding: 10px; text-align: center; vertical-align: middle;">
+							<?php if ( $is_locked ) : ?>
+								<input type="checkbox" checked disabled />
+								<input type="hidden" name="puppy_form_settings[field_active_<?php echo esc_attr( $key ); ?>]" value="1" />
+							<?php else : ?>
+								<input type="checkbox" name="puppy_form_settings[field_active_<?php echo esc_attr( $key ); ?>]" id="field_active_<?php echo esc_attr( $key ); ?>" value="1" <?php checked( '1', $active ); ?> />
+							<?php endif; ?>
+						</td>
+						<td style="padding: 10px; text-align: center; vertical-align: middle;">
+							<?php if ( $is_locked ) : ?>
+								<input type="checkbox" checked disabled />
+								<input type="hidden" name="puppy_form_settings[field_required_<?php echo esc_attr( $key ); ?>]" value="1" />
+							<?php elseif ( 'purpose' === $key ) : ?>
+								<span style="color: #888888; font-size: 12px;">—</span>
+							<?php else : ?>
+								<input type="checkbox" name="puppy_form_settings[field_required_<?php echo esc_attr( $key ); ?>]" id="field_required_<?php echo esc_attr( $key ); ?>" value="1" <?php checked( '1', $required ); ?> />
+							<?php endif; ?>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+		<p class="description" style="margin-top: 8px;">
+			<?php esc_html_e( 'Hinweis: Name und E-Mail-Adresse sind zwingend erforderlich und können nicht deaktiviert werden.', 'custom-puppy-form' ); ?>
+		</p>
+		<?php
 	}
 
 	public function render_label_name_field() {

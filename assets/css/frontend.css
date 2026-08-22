@@ -207,6 +207,11 @@
     border-left: 4px solid #e74c3c;
 }
 
+.puppy-counter-invalid {
+    color: #d93939 !important;
+    font-weight: 600;
+}
+
 /* Mobile responsive Overrides */
 @media screen and (max-width: 768px) {
     .puppy-application-form-container {
