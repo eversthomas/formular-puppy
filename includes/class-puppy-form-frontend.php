@@ -73,13 +73,21 @@ class Puppy_Form_Frontend {
 	 * Render the live character counter below a limited field.
 	 *
 	 * @param string $id Field id attribute.
+	 * @param int    $min Optional minimum character count.
 	 */
-	private function render_char_counter( $id ) {
+	private function render_char_counter( $id, $min = 0 ) {
 		$max = $this->get_freetext_max_length();
 		?>
-		<p class="puppy-char-counter" id="<?php echo esc_attr( $id ); ?>-counter" aria-live="polite">
-			<span class="puppy-char-counter-value"><?php echo (int) $max; ?></span>
-			<?php esc_html_e( 'Zeichen übrig', 'custom-puppy-form' ); ?>
+		<p class="puppy-char-counter" id="<?php echo esc_attr( $id ); ?>-counter" aria-live="polite" style="display: flex; justify-content: space-between;">
+			<span class="puppy-char-min-hint">
+				<?php if ( $min > 0 ) : ?>
+					<?php printf( esc_html__( 'Mindestens %d Zeichen', 'custom-puppy-form' ), (int) $min ); ?>
+				<?php endif; ?>
+			</span>
+			<span class="puppy-char-count-wrap">
+				<span class="puppy-char-counter-value"><?php echo (int) $max; ?></span>
+				<?php esc_html_e( 'Zeichen übrig', 'custom-puppy-form' ); ?>
+			</span>
 		</p>
 		<?php
 	}
@@ -89,8 +97,9 @@ class Puppy_Form_Frontend {
 	 *
 	 * @param string $name Field name attribute.
 	 * @param string $id   Field id attribute.
+	 * @param int    $min  Optional minimum character count.
 	 */
-	private function render_limited_textarea( $name, $id ) {
+	private function render_limited_textarea( $name, $id, $min = 0 ) {
 		$max = $this->get_freetext_max_length();
 		?>
 		<textarea
@@ -99,10 +108,13 @@ class Puppy_Form_Frontend {
 			class="puppy-textarea puppy-limited-field"
 			maxlength="<?php echo (int) $max; ?>"
 			data-char-max="<?php echo (int) $max; ?>"
+			<?php if ( $min > 0 ) : ?>
+				minlength="<?php echo (int) $min; ?>"
+			<?php endif; ?>
 			required
 			aria-required="true"
 		></textarea>
-		<?php $this->render_char_counter( $id ); ?>
+		<?php $this->render_char_counter( $id, $min ); ?>
 		<?php
 	}
 
@@ -113,8 +125,9 @@ class Puppy_Form_Frontend {
 	 * @param string $id    Field id attribute.
 	 * @param string $class CSS class for the input element.
 	 * @param string $type  Input type attribute.
+	 * @param int    $min   Optional minimum character count.
 	 */
-	private function render_limited_input( $name, $id, $class = 'puppy-input-text', $type = 'text' ) {
+	private function render_limited_input( $name, $id, $class = 'puppy-input-text', $type = 'text', $min = 0 ) {
 		$max = $this->get_freetext_max_length();
 		?>
 		<input
@@ -124,10 +137,13 @@ class Puppy_Form_Frontend {
 			class="<?php echo esc_attr( $class ); ?> puppy-limited-field"
 			maxlength="<?php echo (int) $max; ?>"
 			data-char-max="<?php echo (int) $max; ?>"
+			<?php if ( $min > 0 ) : ?>
+				minlength="<?php echo (int) $min; ?>"
+			<?php endif; ?>
 			required
 			aria-required="true"
 		/>
-		<?php $this->render_char_counter( $id ); ?>
+		<?php $this->render_char_counter( $id, $min ); ?>
 		<?php
 	}
 
@@ -246,7 +262,7 @@ class Puppy_Form_Frontend {
 					<label for="puppy_traits" class="puppy-label">
 						<?php esc_html_e( 'Welche Eigenschaften soll Dein Vierbeiner mitbringen?', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
 					</label>
-					<?php $this->render_limited_textarea( 'puppy_traits', 'puppy_traits' ); ?>
+					<?php $this->render_limited_textarea( 'puppy_traits', 'puppy_traits', 10 ); ?>
 				</div>
 
 				<div class="puppy-form-group">
@@ -324,35 +340,35 @@ class Puppy_Form_Frontend {
 					<label for="puppy_family_situation" class="puppy-label">
 						<?php esc_html_e( 'Familiensituation (Anzahl Personen im Haushalt, ggf. Kinder mit Altersangabe)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
 					</label>
-					<?php $this->render_limited_textarea( 'puppy_family_situation', 'puppy_family_situation' ); ?>
+					<?php $this->render_limited_textarea( 'puppy_family_situation', 'puppy_family_situation', 10 ); ?>
 				</div>
 
 				<div class="puppy-form-group">
 					<label for="puppy_living_situation" class="puppy-label">
 						<?php esc_html_e( 'Wohnsituation / Größe (Wohnung, Haus, Garten, Hof)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
 					</label>
-					<?php $this->render_limited_textarea( 'puppy_living_situation', 'puppy_living_situation' ); ?>
+					<?php $this->render_limited_textarea( 'puppy_living_situation', 'puppy_living_situation', 10 ); ?>
 				</div>
 
 				<div class="puppy-form-group">
 					<label for="puppy_work_situation" class="puppy-label">
 						<?php esc_html_e( 'Arbeitssituation (Berufstätigkeitsumfang, Std. pro Tag, ggf. Home-Office usw.)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
 					</label>
-					<?php $this->render_limited_textarea( 'puppy_work_situation', 'puppy_work_situation' ); ?>
+					<?php $this->render_limited_textarea( 'puppy_work_situation', 'puppy_work_situation', 10 ); ?>
 				</div>
 
 				<div class="puppy-form-group">
 					<label for="puppy_dog_experience" class="puppy-label">
 						<?php esc_html_e( 'Vorerfahrungen in der Hundehaltung (Wenn ja, welche Rasse?)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
 					</label>
-					<?php $this->render_limited_textarea( 'puppy_dog_experience', 'puppy_dog_experience' ); ?>
+					<?php $this->render_limited_textarea( 'puppy_dog_experience', 'puppy_dog_experience', 10 ); ?>
 				</div>
 
 				<div class="puppy-form-group">
 					<label for="puppy_selection_wish" class="puppy-label">
 						<?php esc_html_e( 'Welpenauswahl (Geschlechterwunsch / Farbwunsch / Egal)', 'custom-puppy-form' ); ?> <span class="required" aria-hidden="true">*</span>
 					</label>
-					<?php $this->render_limited_textarea( 'puppy_selection_wish', 'puppy_selection_wish' ); ?>
+					<?php $this->render_limited_textarea( 'puppy_selection_wish', 'puppy_selection_wish', 10 ); ?>
 				</div>
 
 				<div class="puppy-form-group">
@@ -394,8 +410,8 @@ class Puppy_Form_Frontend {
 					9 => 'neun',
 				);
 				?>
-				<div class="puppy-form-field">
-					<label for="puppy_math_answer">
+				<div class="puppy-form-group">
+					<label for="puppy_math_answer" class="puppy-label">
 						<?php
 						echo esc_html(
 							__( 'Sicherheitsfrage: ', 'custom-puppy-form' )
@@ -408,6 +424,7 @@ class Puppy_Form_Frontend {
 						pattern="[0-9]*"
 						id="puppy_math_answer"
 						name="puppy_math_answer"
+						class="puppy-input-text"
 						required
 						aria-required="true" />
 					<input type="hidden"

@@ -504,11 +504,19 @@ class Puppy_Form_Handler {
 		$site_domain = wp_parse_url( home_url(), PHP_URL_HOST );
 		if ( ! empty( $site_domain ) ) {
 			$site_domain = preg_replace( '/^www\./i', '', $site_domain );
+			$site_domain = explode( ':', $site_domain )[0];
 		}
-		$sender_email = 'no-reply@' . $site_domain;
+		$sender_email = 'no-reply@' . ( $site_domain ? $site_domain : 'localhost' );
 
-		// Set headers to HTML format.
-		$headers = array(
+		// Set headers for breeder notification email.
+		$breeder_headers = array(
+			'Content-Type: text/html; charset=UTF-8',
+			'From: Welpen-Bewerbung <' . $sender_email . '>',
+			'Reply-To: ' . $applicant_email,
+		);
+
+		// Set headers for applicant autoresponder email.
+		$applicant_headers = array(
 			'Content-Type: text/html; charset=UTF-8',
 			'From: Welpen-Bewerbung <' . $sender_email . '>',
 			'Reply-To: ' . $breeder_recipient,
@@ -580,7 +588,7 @@ class Puppy_Form_Handler {
 		$breeder_body .= '</html>';
 
 		// Verify receiver email integrity prior to sending.
-		$mail_breeder_success = wp_mail( $breeder_recipient, $breeder_subject, $breeder_body, $headers );
+		$mail_breeder_success = wp_mail( $breeder_recipient, $breeder_subject, $breeder_body, $breeder_headers );
 
 		// --- Action B: Send autoresponder to applicant ---
 		// Placeholder replacements.
@@ -603,7 +611,7 @@ class Puppy_Form_Handler {
 		$autoresponder_body .= '</p>';
 		$autoresponder_body .= '</body></html>';
 
-		$mail_applicant_success = wp_mail( $applicant_email, $autoresponder_subject, $autoresponder_body, $headers );
+		$mail_applicant_success = wp_mail( $applicant_email, $autoresponder_subject, $autoresponder_body, $applicant_headers );
 
 		// 8. Differentiated result handling.
 		// Bewerbung gilt nur als erfasst, wenn der DB-Insert erfolgreich war.
