@@ -99,7 +99,7 @@ class Puppy_Form_Frontend {
 	 * @param string $id   Field id attribute.
 	 * @param int    $min  Optional minimum character count.
 	 */
-	private function render_limited_textarea( $name, $id, $min = 0 ) {
+	private function render_limited_textarea( $name, $id, $min = 0, $required = true ) {
 		$max = $this->get_freetext_max_length();
 		?>
 		<textarea
@@ -111,8 +111,9 @@ class Puppy_Form_Frontend {
 			<?php if ( $min > 0 ) : ?>
 				minlength="<?php echo (int) $min; ?>"
 			<?php endif; ?>
-			required
-			aria-required="true"
+			<?php if ( $required ) : ?>
+				required aria-required="true"
+			<?php endif; ?>
 		></textarea>
 		<?php $this->render_char_counter( $id, $min ); ?>
 		<?php
@@ -127,7 +128,7 @@ class Puppy_Form_Frontend {
 	 * @param string $type  Input type attribute.
 	 * @param int    $min   Optional minimum character count.
 	 */
-	private function render_limited_input( $name, $id, $class = 'puppy-input-text', $type = 'text', $min = 0 ) {
+	private function render_limited_input( $name, $id, $class = 'puppy-input-text', $type = 'text', $min = 0, $required = true ) {
 		$max = $this->get_freetext_max_length();
 		?>
 		<input
@@ -140,8 +141,9 @@ class Puppy_Form_Frontend {
 			<?php if ( $min > 0 ) : ?>
 				minlength="<?php echo (int) $min; ?>"
 			<?php endif; ?>
-			required
-			aria-required="true"
+			<?php if ( $required ) : ?>
+				required aria-required="true"
+			<?php endif; ?>
 		/>
 		<?php $this->render_char_counter( $id, $min ); ?>
 		<?php
@@ -269,7 +271,7 @@ class Puppy_Form_Frontend {
 						<label for="puppy_traits" class="puppy-label">
 							<?php esc_html_e( 'Welche Eigenschaften soll Dein Vierbeiner mitbringen?', 'custom-puppy-form' ); ?> <?php if ( $req_traits ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
 						</label>
-						<?php $this->render_limited_textarea( 'puppy_traits', 'puppy_traits', $req_traits ? 10 : 0 ); ?>
+						<?php $this->render_limited_textarea( 'puppy_traits', 'puppy_traits', $req_traits ? 10 : 0, $req_traits ); ?>
 					</div>
 				<?php endif; ?>
 
@@ -360,7 +362,7 @@ class Puppy_Form_Frontend {
 						<label for="puppy_applicant_address" class="puppy-label">
 							<?php esc_html_e( 'Anschrift (Straße, PLZ, Ort)', 'custom-puppy-form' ); ?> <?php if ( $req_address ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
 						</label>
-						<?php $this->render_limited_input( 'puppy_applicant_address', 'puppy_applicant_address', 'puppy-input-text', 'text', $req_address ? 10 : 0 ); ?>
+						<?php $this->render_limited_input( 'puppy_applicant_address', 'puppy_applicant_address', 'puppy-input-text', 'text', $req_address ? 10 : 0, $req_address ); ?>
 					</div>
 				<?php endif; ?>
 
@@ -371,7 +373,7 @@ class Puppy_Form_Frontend {
 						<label for="puppy_family_situation" class="puppy-label">
 							<?php esc_html_e( 'Familiensituation (Anzahl Personen im Haushalt, ggf. Kinder mit Altersangabe)', 'custom-puppy-form' ); ?> <?php if ( $req_family ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
 						</label>
-						<?php $this->render_limited_textarea( 'puppy_family_situation', 'puppy_family_situation', $req_family ? 10 : 0 ); ?>
+						<?php $this->render_limited_textarea( 'puppy_family_situation', 'puppy_family_situation', $req_family ? 10 : 0, $req_family ); ?>
 					</div>
 				<?php endif; ?>
 
@@ -382,7 +384,7 @@ class Puppy_Form_Frontend {
 						<label for="puppy_living_situation" class="puppy-label">
 							<?php esc_html_e( 'Wohnsituation / Größe (Wohnung, Haus, Garten, Hof)', 'custom-puppy-form' ); ?> <?php if ( $req_living ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
 						</label>
-						<?php $this->render_limited_textarea( 'puppy_living_situation', 'puppy_living_situation', $req_living ? 10 : 0 ); ?>
+						<?php $this->render_limited_textarea( 'puppy_living_situation', 'puppy_living_situation', $req_living ? 10 : 0, $req_living ); ?>
 					</div>
 				<?php endif; ?>
 
@@ -393,7 +395,7 @@ class Puppy_Form_Frontend {
 						<label for="puppy_work_situation" class="puppy-label">
 							<?php esc_html_e( 'Arbeitssituation (Berufstätigkeitsumfang, Std. pro Tag, ggf. Home-Office usw.)', 'custom-puppy-form' ); ?> <?php if ( $req_work ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
 						</label>
-						<?php $this->render_limited_textarea( 'puppy_work_situation', 'puppy_work_situation', $req_work ? 10 : 0 ); ?>
+						<?php $this->render_limited_textarea( 'puppy_work_situation', 'puppy_work_situation', $req_work ? 10 : 0, $req_work ); ?>
 					</div>
 				<?php endif; ?>
 
@@ -404,7 +406,7 @@ class Puppy_Form_Frontend {
 						<label for="puppy_dog_experience" class="puppy-label">
 							<?php esc_html_e( 'Vorerfahrungen in der Hundehaltung (Wenn ja, welche Rasse?)', 'custom-puppy-form' ); ?> <?php if ( $req_exp ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
 						</label>
-						<?php $this->render_limited_textarea( 'puppy_dog_experience', 'puppy_dog_experience', $req_exp ? 10 : 0 ); ?>
+						<?php $this->render_limited_textarea( 'puppy_dog_experience', 'puppy_dog_experience', $req_exp ? 10 : 0, $req_exp ); ?>
 					</div>
 				<?php endif; ?>
 
@@ -431,7 +433,7 @@ class Puppy_Form_Frontend {
 						<label for="puppy_other_pets" class="puppy-label">
 							<?php esc_html_e( 'Tierische Mitbewohner (Habt ihr bereits Tiere, mit denen der Welpe aufwachsen wird?)', 'custom-puppy-form' ); ?> <?php if ( $req_pets ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
 						</label>
-						<?php $this->render_limited_textarea( 'puppy_other_pets', 'puppy_other_pets', $req_pets ? 10 : 0 ); ?>
+						<?php $this->render_limited_textarea( 'puppy_other_pets', 'puppy_other_pets', $req_pets ? 10 : 0, $req_pets ); ?>
 					</div>
 				<?php endif; ?>
 			</fieldset>
