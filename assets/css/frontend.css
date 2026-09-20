@@ -70,6 +70,14 @@
     margin-left: 3px;
 }
 
+.puppy-litter-intro {
+    margin: 0 0 12px;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.6;
+    color: #333333;
+}
+
 /* Formularfelder - Harmonisch integriert */
 .puppy-input-text,
 .puppy-input-email,

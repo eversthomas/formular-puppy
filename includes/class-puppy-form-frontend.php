@@ -240,7 +240,40 @@ class Puppy_Form_Frontend {
 			<!-- Bereich A: Interessenbekundung -->
 			<fieldset class="puppy-fieldset">
 				<legend class="puppy-legend"><?php esc_html_e( 'A) Interessenbekundung', 'custom-puppy-form' ); ?></legend>
-				
+
+				<?php
+				$litter_options = Puppy_Form_Admin::get_litter_options();
+				$show_litter    = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_litter' ) && ! empty( $litter_options ) );
+				if ( $show_litter ) :
+					$req_litter   = ( '1' === Puppy_Form_Admin::get_setting( 'field_required_litter' ) );
+					$litter_intro = Puppy_Form_Admin::get_setting( 'puppy_litters_intro' );
+					?>
+					<div class="puppy-form-group">
+						<?php if ( is_string( $litter_intro ) && '' !== trim( $litter_intro ) ) : ?>
+							<p class="puppy-litter-intro"><?php echo nl2br( esc_html( $litter_intro ) ); ?></p>
+						<?php endif; ?>
+						<div id="puppy_litter_label" class="puppy-label">
+							<?php esc_html_e( 'Für welchen Wurf interessierst Du Dich? (Mehrfachauswahl möglich)', 'custom-puppy-form' ); ?>
+							<?php if ( $req_litter ) : ?><span class="required" aria-hidden="true">*</span><?php endif; ?>
+						</div>
+						<div class="puppy-litter-options" role="group" aria-labelledby="puppy_litter_label"<?php echo $req_litter ? ' aria-required="true"' : ''; ?>>
+							<?php foreach ( $litter_options as $litter_index => $litter_label ) : ?>
+								<div class="puppy-form-checkbox-group" style="margin-bottom: 8px;">
+									<label for="puppy_litter_<?php echo esc_attr( (string) $litter_index ); ?>" class="puppy-label-checkbox">
+										<input
+											type="checkbox"
+											name="puppy_litter[]"
+											id="puppy_litter_<?php echo esc_attr( (string) $litter_index ); ?>"
+											class="puppy-input-checkbox"
+											value="<?php echo esc_attr( $litter_label ); ?>"
+										/>
+										<span><?php echo esc_html( $litter_label ); ?></span>
+									</label>
+								</div>
+							<?php endforeach; ?>
+						</div>
+					</div>
+				<?php endif; ?>
 				<?php if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_year' ) ) : 
 					$req_year = ( '1' === Puppy_Form_Admin::get_setting( 'field_required_year' ) );
 					?>

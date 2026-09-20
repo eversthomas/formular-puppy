@@ -125,6 +125,7 @@ class Puppy_Form_Bootstrap {
 		$sql = "CREATE TABLE $table_name (
 			id mediumint(9) NOT NULL AUTO_INCREMENT,
 			target_year varchar(10) NOT NULL,
+			litter_choice text NOT NULL,
 			traits text NOT NULL,
 			purpose_family tinyint(1) NOT NULL DEFAULT 0,
 			purpose_sport tinyint(1) NOT NULL DEFAULT 0,

@@ -90,6 +90,8 @@ class Puppy_Form_Admin {
 		$defaults = array(
 			'receiver_email'            => get_option( 'admin_email' ),
 			'puppy_years_whitelist'     => "2026\n2027\n2028",
+			'puppy_litters_whitelist'   => '',
+			'puppy_litters_intro'       => '',
 			'puppy_price'                => '2.200 €',
 			'delete_data_on_uninstall'  => '0',
 			'privacy_activated'         => '0',
@@ -106,6 +108,7 @@ class Puppy_Form_Admin {
 			
 			// Fields Active status
 			'field_active_year'              => '1',
+			'field_active_litter'            => '1',
 			'field_active_traits'            => '1',
 			'field_active_purpose'           => '1',
 			'field_active_applicant_name'    => '1',
@@ -122,6 +125,7 @@ class Puppy_Form_Admin {
 
 			// Fields Required status
 			'field_required_year'             => '1',
+			'field_required_litter'           => '1',
 			'field_required_traits'           => '1',
 			'field_required_purpose'          => '0',
 			'field_required_applicant_name'   => '1',
@@ -158,6 +162,47 @@ class Puppy_Form_Admin {
 
 		// Fallback to default values.
 		return self::get_default( $key );
+	}
+
+	/**
+	 * Parse the configured litter labels (one per line) into a clean list.
+	 *
+	 * @return string[]
+	 */
+	public static function get_litter_options() {
+		$raw = self::get_setting( 'puppy_litters_whitelist' );
+		if ( ! is_string( $raw ) || '' === trim( $raw ) ) {
+			return array();
+		}
+
+		$lines   = preg_split( '/\r\n|\r|\n/', $raw );
+		$options = array();
+
+		foreach ( $lines as $line ) {
+			$trimmed = trim( $line );
+			if ( '' !== $trimmed ) {
+				$options[] = $trimmed;
+			}
+		}
+
+		return $options;
+	}
+
+	/**
+	 * Format a stored multi-select litter value for admin, CSV and e-mail output.
+	 *
+	 * @param string $value Newline-separated litter labels.
+	 * @return string
+	 */
+	public static function format_litter_choice_for_display( $value ) {
+		if ( ! is_string( $value ) || '' === $value ) {
+			return '';
+		}
+
+		$parts = preg_split( '/\r\n|\r|\n/', $value );
+		$parts = array_filter( array_map( 'trim', $parts ) );
+
+		return implode( ', ', $parts );
 	}
 
 	/**
@@ -214,6 +259,22 @@ class Puppy_Form_Admin {
 			'puppy_years_whitelist',
 			__( 'Verfügbare Jahre (ein Jahr pro Zeile)', 'custom-puppy-form' ),
 			array( $this, 'render_years_whitelist_field' ),
+			'puppy-form-settings-page',
+			'puppy_app_general_section'
+		);
+
+		add_settings_field(
+			'puppy_litters_whitelist',
+			__( 'Verfügbare Würfe (ein Eintrag pro Zeile)', 'custom-puppy-form' ),
+			array( $this, 'render_litters_whitelist_field' ),
+			'puppy-form-settings-page',
+			'puppy_app_general_section'
+		);
+
+		add_settings_field(
+			'puppy_litters_intro',
+			__( 'Erklärungstext zur Wurf-Auswahl', 'custom-puppy-form' ),
+			array( $this, 'render_litters_intro_field' ),
 			'puppy-form-settings-page',
 			'puppy_app_general_section'
 		);
@@ -394,12 +455,53 @@ class Puppy_Form_Admin {
 			$sanitized['puppy_years_whitelist'] = implode( "\n", $sanitized_years );
 		}
 
+		if ( isset( $input['puppy_litters_whitelist'] ) ) {
+			$lines             = preg_split( '/\r\n|\r|\n/', $input['puppy_litters_whitelist'] );
+			$sanitized_litters = array();
+			$seen              = array();
+
+			foreach ( $lines as $line ) {
+				$trimmed = sanitize_text_field( trim( $line ) );
+				if ( '' === $trimmed ) {
+					continue;
+				}
+
+				if ( function_exists( 'mb_substr' ) ) {
+					$trimmed = mb_substr( $trimmed, 0, 120, 'UTF-8' );
+				} else {
+					$trimmed = substr( $trimmed, 0, 120 );
+				}
+
+				$lookup_key = function_exists( 'mb_strtolower' ) ? mb_strtolower( $trimmed, 'UTF-8' ) : strtolower( $trimmed );
+				if ( isset( $seen[ $lookup_key ] ) ) {
+					continue;
+				}
+
+				$seen[ $lookup_key ]   = true;
+				$sanitized_litters[] = $trimmed;
+			}
+
+			$sanitized['puppy_litters_whitelist'] = implode( "\n", $sanitized_litters );
+		}
+
+		if ( isset( $input['puppy_litters_intro'] ) ) {
+			$intro = sanitize_textarea_field( $input['puppy_litters_intro'] );
+			if ( function_exists( 'mb_substr' ) && function_exists( 'mb_strlen' ) ) {
+				if ( mb_strlen( $intro, 'UTF-8' ) > PUPPY_FORM_FREETEXT_MAX_LENGTH ) {
+					$intro = mb_substr( $intro, 0, PUPPY_FORM_FREETEXT_MAX_LENGTH, 'UTF-8' );
+				}
+			} elseif ( strlen( $intro ) > PUPPY_FORM_FREETEXT_MAX_LENGTH ) {
+				$intro = substr( $intro, 0, PUPPY_FORM_FREETEXT_MAX_LENGTH );
+			}
+			$sanitized['puppy_litters_intro'] = $intro;
+		}
+
 		// Sanitize field active / required checkboxes.
 		if ( isset( $input['puppy_price'] ) ) {
 			$sanitized['delete_data_on_uninstall'] = isset( $input['delete_data_on_uninstall'] ) && '1' === $input['delete_data_on_uninstall'] ? '1' : '0';
 			
 			$fields_keys = array(
-				'year', 'traits', 'purpose', 'applicant_name', 'applicant_age',
+				'year', 'litter', 'traits', 'purpose', 'applicant_name', 'applicant_age',
 				'applicant_email', 'applicant_phone', 'applicant_address',
 				'family_situation', 'living_situation', 'work_situation',
 				'dog_experience', 'selection_wish', 'other_pets'
@@ -470,6 +572,18 @@ class Puppy_Form_Admin {
 		echo '<p class="description">' . esc_html__( 'Tragen Sie ein Jahr pro Zeile ein (z. B. 2026). Nur 4-stellige Zahlen sind gültig.', 'custom-puppy-form' ) . '</p>';
 	}
 
+	public function render_litters_whitelist_field() {
+		$val = self::get_setting( 'puppy_litters_whitelist' );
+		echo '<textarea name="puppy_form_settings[puppy_litters_whitelist]" id="puppy_litters_whitelist" class="large-text" rows="5">' . esc_textarea( $val ) . '</textarea>';
+		echo '<p class="description">' . esc_html__( 'Ein Eintrag pro Zeile, z. B. der Name der Hündin. Diese Einträge erscheinen im Formular als Mehrfachauswahl. Ohne Einträge wird das Feld im Frontend nicht angezeigt.', 'custom-puppy-form' ) . '</p>';
+	}
+
+	public function render_litters_intro_field() {
+		$val = self::get_setting( 'puppy_litters_intro' );
+		echo '<textarea name="puppy_form_settings[puppy_litters_intro]" id="puppy_litters_intro" class="large-text" rows="4">' . esc_textarea( $val ) . '</textarea>';
+		echo '<p class="description">' . esc_html__( 'Optionaler Text, der oberhalb der Wurf-Auswahl angezeigt wird. Leer lassen, wenn kein Hinweis erscheinen soll.', 'custom-puppy-form' ) . '</p>';
+	}
+
 	public function render_puppy_price_field() {
 		$val = self::get_setting( 'puppy_price' );
 		echo '<input type="text" name="puppy_form_settings[puppy_price]" id="puppy_app_puppy_price" value="' . esc_attr( $val ) . '" class="regular-text" required />';
@@ -504,6 +618,7 @@ class Puppy_Form_Admin {
 	public function render_fields_status_table() {
 		$fields = array(
 			'year'              => __( 'Wunschjahr', 'custom-puppy-form' ),
+			'litter'            => __( 'Interessierter Wurf (Mehrfachauswahl)', 'custom-puppy-form' ),
 			'traits'            => __( 'Gewünschte Eigenschaften', 'custom-puppy-form' ),
 			'purpose'           => __( 'Verwendungszweck (Checkboxen)', 'custom-puppy-form' ),
 			'applicant_name'    => __( 'Name (Bewerber)', 'custom-puppy-form' ),
@@ -849,6 +964,24 @@ class Puppy_Form_Admin {
 			Puppy_Form_Bootstrap::upgrade_applications_table();
 			update_option( 'puppy_form_db_version', '1.4.1' );
 		}
+
+		// Sechste Migrationsstufe (1.5.0) - Spalte für die Wurf-Mehrfachauswahl.
+		if ( version_compare( $db_version, '1.5.0', '<' ) ) {
+			require_once plugin_dir_path( __FILE__ ) . 'class-puppy-form-bootstrap.php';
+
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is prefixed and hardcoded.
+			$column_exists = $wpdb->get_results( "SHOW COLUMNS FROM $table_name LIKE 'litter_choice'" );
+			if ( empty( $column_exists ) ) {
+				// NULL first so existing rows do not fail under strict SQL mode.
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is prefixed and hardcoded.
+				$wpdb->query( "ALTER TABLE $table_name ADD COLUMN litter_choice TEXT NULL AFTER target_year" );
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is prefixed and hardcoded.
+				$wpdb->query( "UPDATE $table_name SET litter_choice = '' WHERE litter_choice IS NULL" );
+			}
+
+			Puppy_Form_Bootstrap::upgrade_applications_table();
+			update_option( 'puppy_form_db_version', '1.5.0' );
+		}
 	}
 
 	/**
@@ -930,6 +1063,7 @@ class Puppy_Form_Admin {
 				'Telefon',
 				'Anschrift',
 				'Jahr',
+				'Interessierter Wurf',
 				'Gewünschte Eigenschaften',
 				'Zweck',
 				'Familiensituation',
@@ -980,6 +1114,7 @@ class Puppy_Form_Admin {
 						$phone,
 						$app->applicant_address,
 						$app->target_year,
+						self::format_litter_choice_for_display( isset( $app->litter_choice ) ? $app->litter_choice : '' ),
 						$app->traits,
 						$zweck,
 						$app->family_situation,
@@ -1134,6 +1269,7 @@ class Puppy_Form_Admin {
 							$email      = ! empty( $app->applicant_email ) ? $app->applicant_email : ( ! empty( $app->email ) ? $app->email : '' );
 							$phone      = ! empty( $app->applicant_phone ) ? $app->applicant_phone : ( ! empty( $app->phone ) ? $app->phone : '' );
 							$year       = ! empty( $app->target_year ) ? $app->target_year : '';
+							$litter     = ! empty( $app->litter_choice ) ? self::format_litter_choice_for_display( $app->litter_choice ) : '';
 							$traits     = ! empty( $app->traits ) ? $app->traits : '';
 							$address    = ! empty( $app->applicant_address ) ? $app->applicant_address : '';
 							$family     = ! empty( $app->family_situation ) ? $app->family_situation : '';
@@ -1169,6 +1305,9 @@ class Puppy_Form_Admin {
 											<?php endif; ?>
 											<?php if ( ! empty( $traits ) ) : ?>
 												<p style="margin: 0 0 8px 0;"><strong><?php esc_html_e( 'Eigenschaften:', 'custom-puppy-form' ); ?></strong> <?php echo esc_html( $traits ); ?></p>
+											<?php endif; ?>
+											<?php if ( ! empty( $litter ) ) : ?>
+												<p style="margin: 0 0 8px 0;"><strong><?php esc_html_e( 'Interessierter Wurf:', 'custom-puppy-form' ); ?></strong> <?php echo esc_html( $litter ); ?></p>
 											<?php endif; ?>
 											<p style="margin: 0 0 8px 0;"><strong><?php esc_html_e( 'Zweck:', 'custom-puppy-form' ); ?></strong> 
 												<?php

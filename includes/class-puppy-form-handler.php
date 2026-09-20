@@ -144,6 +144,30 @@ class Puppy_Form_Handler {
 	}
 
 	/**
+	 * Collect and sanitize posted litter checkbox values.
+	 *
+	 * @return string[]
+	 */
+	private function get_posted_litter_choices() {
+		if ( ! isset( $_POST['puppy_litter'] ) || ! is_array( $_POST['puppy_litter'] ) ) {
+			return array();
+		}
+
+		$posted = array();
+		foreach ( $_POST['puppy_litter'] as $item ) {
+			if ( ! is_string( $item ) ) {
+				continue;
+			}
+			$clean = sanitize_text_field( wp_unslash( $item ) );
+			if ( '' !== $clean ) {
+				$posted[] = $clean;
+			}
+		}
+
+		return array_values( array_unique( $posted ) );
+	}
+
+	/**
 	 * Core Submission handler.
 	 */
 	public function handle_form_submission() {
@@ -250,6 +274,20 @@ class Puppy_Form_Handler {
 				$this->redirect_with_query_arg(
 					'puppy_error', 'spam_detected'
 				);
+				return;
+			}
+		}
+
+		foreach ( $this->get_posted_litter_choices() as $litter_value ) {
+			$value = strtolower( $litter_value );
+			foreach ( $spam_patterns as $pattern ) {
+				if ( strpos( $value, strtolower( $pattern ) ) !== false ) {
+					$this->redirect_with_query_arg( 'puppy_error', 'spam_detected' );
+					return;
+				}
+			}
+			if ( preg_match( $cyrillic_pattern, $litter_value ) ) {
+				$this->redirect_with_query_arg( 'puppy_error', 'spam_detected' );
 				return;
 			}
 		}
@@ -421,6 +459,28 @@ class Puppy_Form_Handler {
 			}
 		}
 
+		$litter_options  = Puppy_Form_Admin::get_litter_options();
+		$active_litter   = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_litter' ) );
+		$required_litter = ( '1' === Puppy_Form_Admin::get_setting( 'field_required_litter' ) );
+		$posted_litters  = $this->get_posted_litter_choices();
+		$use_litter      = ( $active_litter && ! empty( $litter_options ) );
+
+		if ( $use_litter ) {
+			foreach ( $posted_litters as $posted_litter ) {
+				if ( ! in_array( $posted_litter, $litter_options, true ) ) {
+					$this->redirect_with_query_arg( 'puppy_error', 'missing_fields' );
+					return;
+				}
+			}
+
+			if ( $required_litter && empty( $posted_litters ) ) {
+				$this->redirect_with_query_arg( 'puppy_error', 'missing_fields' );
+				return;
+			}
+		} else {
+			$posted_litters = array();
+		}
+
 		$posted_wish = sanitize_text_field( $_POST['puppy_selection_wish'] ?? '' );
 		if ( '1' === Puppy_Form_Admin::get_setting( 'field_active_selection_wish' ) ) {
 			if ( ! in_array( $posted_wish, array( 'Rüde', 'Hündin', 'Egal' ), true ) ) {
@@ -455,6 +515,7 @@ class Puppy_Form_Handler {
 		$active_other_pets = ( '1' === Puppy_Form_Admin::get_setting( 'field_active_other_pets' ) );
 
 		$target_year          = $active_year ? $posted_year : '';
+		$litter_choice        = ( $use_litter && ! empty( $posted_litters ) ) ? $this->sanitize_db_text( implode( "\n", $posted_litters ) ) : '';
 		$traits               = $active_traits ? $this->prepare_freetext_for_db( $_POST['puppy_traits'] ?? '' ) : '';
 		$purpose_family       = ( $active_purpose && isset( $_POST['puppy_purpose_family'] ) ) ? 1 : 0;
 		$purpose_sport        = ( $active_purpose && isset( $_POST['puppy_purpose_sport'] ) ) ? 1 : 0;
@@ -481,6 +542,7 @@ class Puppy_Form_Handler {
 			$table_name,
 			array(
 				'target_year'         => $target_year,
+				'litter_choice'       => $litter_choice,
 				'traits'              => $traits,
 				'purpose_family'      => $purpose_family,
 				'purpose_sport'       => $purpose_sport,
@@ -502,6 +564,7 @@ class Puppy_Form_Handler {
 			),
 			array(
 				'%s', // target_year
+				'%s', // litter_choice
 				'%s', // traits
 				'%d', // purpose_family
 				'%d', // purpose_sport
@@ -603,6 +666,10 @@ class Puppy_Form_Handler {
 			$breeder_body .= '<strong>' . esc_html__( 'Telefon:', 'custom-puppy-form' ) . '</strong> ' . esc_html( $applicant_phone ) . '<br />';
 			$breeder_body .= '<strong>' . esc_html__( 'Anschrift:', 'custom-puppy-form' ) . '</strong> ' . esc_html( $applicant_address ) . '<br />';
 			$breeder_body .= '<strong>' . esc_html__( 'Wunschjahr:', 'custom-puppy-form' ) . '</strong> ' . esc_html( $target_year ) . '<br />';
+			$litter_display = Puppy_Form_Admin::format_litter_choice_for_display( $litter_choice );
+			if ( '' !== $litter_display ) {
+				$breeder_body .= '<strong>' . esc_html__( 'Interessierter Wurf:', 'custom-puppy-form' ) . '</strong> ' . esc_html( $litter_display ) . '<br />';
+			}
 			$breeder_body .= '<strong>' . esc_html__( 'Gewünschte Eigenschaften:', 'custom-puppy-form' ) . '</strong> ' . esc_html( $traits ) . '<br />';
 			$breeder_body .= '<strong>' . esc_html__( 'Zweck:', 'custom-puppy-form' ) . '</strong> ' . esc_html( $fallback_purposes ) . '<br />';
 			$breeder_body .= '<strong>' . esc_html__( 'Familiensituation:', 'custom-puppy-form' ) . '</strong> ' . nl2br( esc_html( $family_situation ) ) . '<br />';
